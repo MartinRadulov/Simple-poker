@@ -1,0 +1,3 @@
+﻿  tasks.cpp
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(159,14): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  week3.vcxproj -> C:\Users\sussus amogus\source\repos\week3\x64\Debug\week3.exe
