@@ -18,6 +18,8 @@ void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint);
 void giveChips(int* plPots, size_t plCount);
 void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl);
 void consoleMessage2(int* plPots, size_t plCount);
+size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
+size_t cardCombs(char** hands, size_t combAmount);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
 
 int main()
@@ -31,6 +33,8 @@ int main()
     size_t playerTracker = 1;
     size_t pot = 0;
     size_t betAmount = 0;
+    size_t combAmount = 0;
+    size_t cardIndex = 0;
     char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
     char** deck = new char* [CARD_AMOUNT];
@@ -160,6 +164,7 @@ void combineChars(const char* a, const char* b, char** comb)
 
 void shuffleCards(char** a)
 {
+    std::srand(time(0));
     for (int i = 0; i < CARD_AMOUNT; i++)
     {
         size_t random = i + rand() % (CARD_AMOUNT - i);
@@ -220,6 +225,31 @@ void consoleMessage2(int* plPots, size_t plCount)
         std::cout << "Player" << (i + 1) << ": " << plPots[i] << "| ";
     }
     std::cout << std::endl;
+}
+
+size_t giveValue(char** a, size_t cardIndex, size_t playerTracker)
+{
+    if (a[playerTracker][cardIndex] == 'A')
+    {
+        return 11;
+    }
+    else
+    {
+        switch (a[playerTracker][cardIndex])
+        {
+        case 'J':
+        case 'Q':
+        case 'K':
+        case 'D': return 10;
+            break;
+        default: return a[playerTracker][cardIndex] - '0';
+        }
+    }
+}
+
+size_t cardCombs(char** hands, size_t combAmount)
+{
+    return 1;
 }
 
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
