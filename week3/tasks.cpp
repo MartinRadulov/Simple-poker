@@ -19,7 +19,8 @@ void giveChips(int* plPots, size_t plCount);
 void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl);
 void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
-size_t cardCombs(char** hands, size_t combAmount);
+size_t highestValue(char** a, size_t playerTracker);
+size_t cardCombs(char** hands, size_t combAmount, size_t playerTracker);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
 
 int main()
@@ -247,9 +248,57 @@ size_t giveValue(char** a, size_t cardIndex, size_t playerTracker)
     }
 }
 
-size_t cardCombs(char** hands, size_t combAmount)
+size_t highestValue(char** hands, size_t playerTracker)
 {
-    return 1;
+    size_t tempMax = 0, tempSize = PLAYER_CARDS * 2;
+    for (int i = 0; i < tempSize; i += 2)
+    {
+        if (hands[playerTracker][i] > tempMax)
+        {
+            tempMax = giveValue(hands, i, playerTracker);
+        }
+    }
+    return tempMax;
+}
+
+size_t cardCombs(char** hands, size_t combAmount, size_t playerTracker)
+{
+    size_t suitAmount = 0;
+    size_t tempSize = PLAYER_CARDS * 2;
+    size_t rankCounter = 1;
+    size_t suitCounter = 0;
+    size_t highCard = highestValue(hands, playerTracker);
+
+    //Check for flush
+    for (int rank = 0, suit = 1; suit <= PLAYER_CARDS; rank += 2, suit += 2) //Only one loop is required
+    {
+        //Counter goes up by 1 if there are mathing ranks
+        if (hands[playerTracker][rank] == hands[playerTracker][rank + 2]) //checks the next rank
+        {
+            rankCounter++;
+            combAmount = giveValue(hands, playerTracker, rank) * rankCounter;
+        }
+
+        //If there is a three of kind then return the combAmount
+        if (rankCounter == 3)
+        {
+            return combAmount;
+        }
+
+        //Checks for matching suit
+        if (hands[playerTracker][suit] == hands[playerTracker][suit + 2])
+        {
+            combAmount += giveValue(hands, playerTracker, rank);
+        }
+    }
+
+    //If there wasnt a three of a kind then combAmount would be eual to the same suits
+    //If there arent same suits then it would return highCard
+    if (combAmount > highCard)
+    {
+        return combAmount;
+    }
+    return highCard;
 }
 
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
