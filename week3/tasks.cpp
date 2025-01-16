@@ -2,6 +2,7 @@
 
 const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
 const size_t MIN_PLAYERS = 2, MAX_PLAYERS = 9, PLAYER_CARDS = 3, CHIP_VALUE = 10;
+const size_t ACE_PAIR = 22, SEVEN_PAIR = 23, THREE_SEVENS = 34;
 
 void consoleMessage1();
 void createDynamicChar(char** a, size_t size);
@@ -20,7 +21,7 @@ void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl);
 void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(char** a, size_t playerTracker);
-size_t cardCombs(char** hands, size_t combAmount, size_t playerTracker);
+size_t cardCombs(char** hands, size_t playerTracker);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
 
 int main()
@@ -34,7 +35,6 @@ int main()
     size_t playerTracker = 1;
     size_t pot = 0;
     size_t betAmount = 0;
-    size_t combAmount = 0;
     size_t cardIndex = 0;
     char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
@@ -261,15 +261,31 @@ size_t highestValue(char** hands, size_t playerTracker)
     return tempMax;
 }
 
-size_t cardCombs(char** hands, size_t combAmount, size_t playerTracker)
+size_t cardCombs(char** hands, size_t playerTracker)
 {
+    size_t combAmount = 0;
     size_t suitAmount = 0;
     size_t tempSize = PLAYER_CARDS * 2;
     size_t rankCounter = 1;
     size_t suitCounter = 0;
+    size_t aceCounter = 0;
+    size_t sevenCounter = 0;
+    bool joker = false;
     size_t highCard = highestValue(hands, playerTracker);
 
-    //Check for flush
+    //Search for the joker
+    for (int rank = 0, suit = 1; rank < tempSize; rank += 2, suit += 2)
+    {
+        if (hands[playerTracker][rank] == '7' && hands[playerTracker][suit] == 'C')
+        {
+            joker = true;
+            rankCounter++; //Only two cards would be needed now for the three of a kind
+            sevenCounter++;
+            combAmount += 11; //Gives +11 to every combination
+        }
+    }
+
+    //Go thru the hand to look for combinations
     for (int rank = 0, suit = 1; suit <= PLAYER_CARDS; rank += 2, suit += 2) //Only one loop is required
     {
         //Counter goes up by 1 if there are mathing ranks
@@ -277,6 +293,22 @@ size_t cardCombs(char** hands, size_t combAmount, size_t playerTracker)
         {
             rankCounter++;
             combAmount = giveValue(hands, playerTracker, rank) * rankCounter;
+        }
+
+        //Check for 7 or Ace because they can also have a pair
+        if (hands[playerTracker][rank] == '7')
+        {
+            sevenCounter++;
+        }
+        if (hands[playerTracker][rank] == 'A')
+        {
+            aceCounter++;
+        }
+
+        //If there are three sevens immidietly return 34
+        if (sevenCounter == 3)
+        {
+            return THREE_SEVENS;
         }
 
         //If there is a three of kind then return the combAmount
@@ -292,8 +324,16 @@ size_t cardCombs(char** hands, size_t combAmount, size_t playerTracker)
         }
     }
 
-    //If there wasnt a three of a kind then combAmount would be eual to the same suits
+    //If there wasnt a three of a kind then combAmount would be flush/pair/high card
     //If there arent same suits then it would return highCard
+    if (aceCounter == 2 && combAmount < ACE_PAIR)
+    {
+        combAmount = ACE_PAIR;
+    }
+    if (sevenCounter == 2 && combAmount < SEVEN_PAIR)
+    {
+        combAmount = SEVEN_PAIR;
+    }
     if (combAmount > highCard)
     {
         return combAmount;
