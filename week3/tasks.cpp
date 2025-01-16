@@ -5,17 +5,17 @@ const size_t MIN_PLAYERS = 2, MAX_PLAYERS = 9, PLAYER_CARDS = 3, CHIP_VALUE = 10
 
 void consoleMessage1();
 void createDeckNumbers(char* a);
-void combineChars(const char* a, const char* b, char comb[][ROW_SIZE]);
+void combineChars(const char* a, const char* b, char** comb);
 void outputChArray(const char* a);
-void outputDeck(const char a[][ROW_SIZE]);
+void outputDeck(const char** a);
 bool strCompare(const char* str1, const char* str2);
 size_t playerCount();
-void shuffleCards(char a[][ROW_SIZE]);
-void givePlHands(char deck[][ROW_SIZE], char hands[][ARRAY_SIZE], size_t plCount, size_t& stopPoint);
-void giveChips(int plPots[ARRAY_SIZE], size_t plCount);
+void shuffleCards(char** a);
+void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint);
+void giveChips(int* plPots, size_t plCount);
 void foldPlayer(size_t& playerIndex, size_t plCount, bool* activePl);
-void consoleMessage2(int plPots[ARRAY_SIZE], size_t plCount);
-void playerMessage(char hands[][ARRAY_SIZE], size_t& playerTracker, size_t plCount, int plPots[ARRAY_SIZE], size_t pot, size_t betAmount, bool* activePl);
+void consoleMessage2(int* plPots, size_t plCount);
+void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t pot, size_t betAmount, bool* activePl);
 
 int main()
 {
@@ -28,12 +28,24 @@ int main()
     size_t playerTracker = 1;
     size_t pot = 0;
     size_t betAmount = 0;
-    char suitless[CARD_AMOUNT];
+    char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
-    char deck[CARD_AMOUNT][ROW_SIZE];
-    char hands[ARRAY_SIZE][ARRAY_SIZE];
-    int plPots[ARRAY_SIZE];
-    bool activePl[ARRAY_SIZE] = { true };
+    char** deck = new char* [CARD_AMOUNT];
+    for (size_t i = 0; i < CARD_AMOUNT; ++i)
+    {
+        deck[i] = new char[ROW_SIZE];
+    }
+    char** hands = new char* [ARRAY_SIZE];
+    for (size_t i = 0; i < ARRAY_SIZE; ++i)
+    {
+        hands[i] = new char[ARRAY_SIZE];
+    }
+    int* plPots = new int[ARRAY_SIZE];
+    bool* activePl = new bool[ARRAY_SIZE];
+    for (size_t i = 0; i < ARRAY_SIZE; ++i)
+    {
+        activePl[i] = true;
+    }
 
     //Create the deck and shuffle it
     createDeckNumbers(suitless);
@@ -52,6 +64,19 @@ int main()
     {
         playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
     }
+
+    //Free memory
+    delete[] suitless;
+    for (size_t i = 0; i < CARD_AMOUNT; ++i)
+        delete[] deck[i];
+    delete[] deck;
+    for (size_t i = 0; i < ARRAY_SIZE; ++i)
+        delete[] hands[i];
+    delete[] hands;
+    delete[] plPots;
+    delete[] activePl;
+
+    return 0;
 }
 
 void consoleMessage1()
@@ -104,7 +129,7 @@ void createDeckNumbers(char* a)
     }
 }
 
-void combineChars(const char* a, const char* b, char comb[][ROW_SIZE])
+void combineChars(const char* a, const char* b, char** comb)
 {
     int suit = 0;
     for (int j = 0; j < CARD_AMOUNT; j++)
@@ -119,7 +144,7 @@ void combineChars(const char* a, const char* b, char comb[][ROW_SIZE])
     }
 }
 
-void shuffleCards(char a[][ROW_SIZE])
+void shuffleCards(char** a)
 {
     for (int i = 0; i < CARD_AMOUNT; i++)
     {
@@ -134,7 +159,7 @@ void shuffleCards(char a[][ROW_SIZE])
     }
 }
 
-void givePlHands(char deck[][ROW_SIZE], char hands[][ARRAY_SIZE], size_t plCount, size_t& stopPoint)
+void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint)
 {
     size_t count = 0;
     for (int i = 0; i < plCount; i++)
@@ -152,7 +177,7 @@ void givePlHands(char deck[][ROW_SIZE], char hands[][ARRAY_SIZE], size_t plCount
     stopPoint = count; // Tracks the last used card index in the deck
 }
 
-void giveChips(int plPots[ARRAY_SIZE], size_t plCount)
+void giveChips(int* plPots, size_t plCount)
 {
     for (int i = 0; i < plCount; i++)
     {
@@ -169,7 +194,7 @@ void foldPlayer(size_t& playerIndex, size_t plCount, bool* activePl)
     plCount--;
 }
 
-void consoleMessage2(int plPots[ARRAY_SIZE], size_t plCount)
+void consoleMessage2(int* plPots, size_t plCount)
 {
     for (int i = 0; i < plCount; i++)
     {
@@ -182,30 +207,33 @@ void consoleMessage2(int plPots[ARRAY_SIZE], size_t plCount)
     std::cout << std::endl;
 }
 
-void playerMessage(char hands[][ARRAY_SIZE], size_t& playerTracker, size_t plCount, int plPots[ARRAY_SIZE], size_t pot, size_t betAmount, bool* activePl)
+void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t pot, size_t betAmount, bool* activePl)
 {
-   /* size_t tempTracker = playerTracker - 1;
-    while (activePl[tempTracker])
+    //Skipping the inactive players
+    size_t tempTracker = playerTracker - 1;
+    while (!activePl[tempTracker])
     {
         tempTracker++;
-        if (activePl[tempTracker] == 0)
+        if (tempTracker >= plCount)
         {
             tempTracker = 0;
         }
-    }*/
+    }
+
     //Clears the console
     std::cout << "\x1B[2J\x1B[H";
 
     //Display players cards and chips
     std::cout << "Current pot: " << pot << std::endl;
     std::cout << "Current bet: " << betAmount << std::endl << std::endl;
-    int temp = playerTracker - 1, cards = PLAYER_CARDS * 2;
+    playerTracker = tempTracker + 1;
+    int cards = PLAYER_CARDS * 2;
     char choice[ARRAY_SIZE];
     std::cout << "Player" << playerTracker << ":" << std::endl;
-    std::cout << "Chips: " << plPots[temp] << std::endl; 
+    std::cout << "Chips: " << plPots[tempTracker] << std::endl; 
     for (int i = 0; i < cards; i++)
     {
-        std::cout << hands[temp][i++] << hands[temp][i] << " ";
+        std::cout << hands[tempTracker][i++] << hands[tempTracker][i] << " ";
     }
     std::cout << std::endl;
 
@@ -217,26 +245,26 @@ void playerMessage(char hands[][ARRAY_SIZE], size_t& playerTracker, size_t plCou
         size_t raiseAmount = 0;
         std::cout << "Raise to:" << std::endl;
         std::cin >> raiseAmount;
-        if (raiseAmount > betAmount && raiseAmount <= plPots[temp])
+        if (raiseAmount > betAmount && raiseAmount <= plPots[tempTracker])
         {
             betAmount = raiseAmount;
-            plPots[temp] -= betAmount;
+            plPots[tempTracker] -= betAmount;
             pot += betAmount;
         }
-        plPots[temp] -= betAmount;
+        plPots[tempTracker] -= betAmount;
         pot += betAmount;
         
     }
     else if (strCompare(choice, "check"))
     {
         std::cout << "Checked" << std::endl;
-        plPots[temp] -= betAmount;
+        plPots[tempTracker] -= betAmount;
         pot += betAmount;
     }
     else if (strCompare(choice, "fold"))
     {
         std::cout << "Folded" << std::endl;
-        foldPlayer(plCount, temp, activePl);
+        foldPlayer(plCount, tempTracker, activePl);
     }
     else
     {
