@@ -4,7 +4,7 @@ const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
 const size_t MIN_PLAYERS = 2, MAX_PLAYERS = 9, PLAYER_CARDS = 3, CHIP_VALUE = 10;
 
 void consoleMessage1();
-void createDynamicChar(char** a);
+void createDynamicChar(char** a, size_t size);
 void createDynamicBool(bool* a);
 void freeMemory(char** a, size_t size);
 void createDeckNumbers(char* a);
@@ -16,9 +16,9 @@ size_t playerCount();
 void shuffleCards(char** a);
 void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint);
 void giveChips(int* plPots, size_t plCount);
-void foldPlayer(size_t& playerIndex, size_t plCount, bool* activePl);
+void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl);
 void consoleMessage2(int* plPots, size_t plCount);
-void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t pot, size_t betAmount, bool* activePl);
+void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
 
 int main()
 {
@@ -34,9 +34,9 @@ int main()
     char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
     char** deck = new char* [CARD_AMOUNT];
-    createDynamicChar(deck);
+    createDynamicChar(deck, CARD_AMOUNT);
     char** hands = new char* [ARRAY_SIZE];
-    createDynamicChar(hands);
+    createDynamicChar(hands, plCount);
     int* plPots = new int[ARRAY_SIZE];
     bool* activePl = new bool[ARRAY_SIZE];
     createDynamicBool(activePl);
@@ -62,9 +62,7 @@ int main()
     //Free memory
     delete[] suitless;
     freeMemory(deck, CARD_AMOUNT);
-    delete[] deck;
     freeMemory(hands, ARRAY_SIZE);
-    delete[] hands;
     delete[] plPots;
     delete[] activePl;
 
@@ -79,9 +77,9 @@ void consoleMessage1()
     std::cout << "Enter player amount:" << std::endl;
 }
 
-void createDynamicChar(char** a)
+void createDynamicChar(char** a, size_t size)
 {
-    for (int i = 0; i < CARD_AMOUNT; i++)
+    for (int i = 0; i < size; i++)
     {
         a[i] = new char[ROW_SIZE];
     }
@@ -180,6 +178,7 @@ void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint)
     size_t count = 0;
     for (int i = 0; i < plCount; i++)
     {
+        hands[i] = new char[PLAYER_CARDS * 2];
         size_t j = 0;
         for (int cards = 0; cards < PLAYER_CARDS; cards++)
         {
@@ -201,7 +200,7 @@ void giveChips(int* plPots, size_t plCount)
     }
 }
 
-void foldPlayer(size_t& playerIndex, size_t plCount, bool* activePl)
+void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl)
 {
     //Set the player as inactive
     activePl[playerIndex] = false;
@@ -223,7 +222,7 @@ void consoleMessage2(int* plPots, size_t plCount)
     std::cout << std::endl;
 }
 
-void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t pot, size_t betAmount, bool* activePl)
+void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
 {
     //Skipping the inactive players
     size_t tempTracker = playerTracker - 1;
@@ -264,8 +263,10 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
         if (raiseAmount > betAmount && raiseAmount <= plPots[tempTracker])
         {
             betAmount = raiseAmount;
-            plPots[tempTracker] -= betAmount;
-            pot += betAmount;
+        }
+        else
+        {
+            std::cout << "Raise is lower, automaticly check" << std::endl;
         }
         plPots[tempTracker] -= betAmount;
         pot += betAmount;
@@ -280,7 +281,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     else if (strCompare(choice, "fold"))
     {
         std::cout << "Folded" << std::endl;
-        foldPlayer(plCount, tempTracker, activePl);
+        foldPlayer(tempTracker, plCount, activePl);
     }
     else
     {
