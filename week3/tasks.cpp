@@ -1,7 +1,7 @@
-//Fix player 1 always winning
 //Fix the folding players
 //If one player is active then he wins
 //If someone other than player one riases then it should loop back to the beggining
+//fix joker for all combos , ace pair/flush/something else if there is any
 #include <iostream>
 
 const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
@@ -19,7 +19,7 @@ void outputDeck(const char** a);
 bool strCompare(const char* str1, const char* str2);
 size_t playerCount();
 void shuffleCards(char** a);
-void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint);
+void givePlHands(char** deck, char** hands, size_t plCount);
 void giveChips(int* plPots, size_t plCount);
 void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl);
 void consoleMessage2(int* plPots, size_t plCount);
@@ -28,7 +28,7 @@ size_t highestValue(char** a, size_t playerTracker);
 size_t cardCombs(char** hands, size_t playerTracker);
 void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
-void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t plCount, size_t& pot, int* plPots, bool& game);
+void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount);
 
 int main()
 {
@@ -37,6 +37,7 @@ int main()
 
     //Initialize variables
     size_t plCount = playerCount();
+    size_t originalCount = plCount;
     size_t stopPoint = 0;
     size_t playerTracker = 1;
     size_t pot = 0;
@@ -59,24 +60,23 @@ int main()
     shuffleCards(deck);
 
     //Give cards and chips to players
-    givePlHands(deck, hands, plCount, stopPoint);
+    givePlHands(deck, hands, plCount);
     giveChips(plPots, plCount);
 
-    //Start the game
+    //Start the game and continue if required
     while (game && plCount > 1)
     {
+        //Reshuffle the deck and deal new cards if the game continues
+        shuffleCards(deck);
+        givePlHands(deck, hands, plCount);
         consoleMessage2(plPots, plCount);
         for (size_t i = 0; i < plCount; i++)
         {
             playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
         }
-        playerWin(hands, playerTracker, activePl, plCount, pot, plPots, game);
+        playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
+        plCount = originalCount; // Reseting to the original amount of players
     }
-    if (plCount <= 1)
-    {
-        std::cout << "Game over, not enough players";
-    }
-
 
     //Free memory
     delete[] suitless;
@@ -149,7 +149,7 @@ bool strCompare(const char* str1, const char* str2)
         str1++;
         str2++;
     }
-    return true;
+    return *str1 == '\0' && *str2 == '\0';
 }
 
 void createDeckNumbers(char* a)
@@ -203,7 +203,7 @@ void shuffleCards(char** a)
     }
 }
 
-void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint)
+void givePlHands(char** deck, char** hands, size_t plCount)
 {
     size_t count = 0;
     for (int i = 0; i < plCount; i++)
@@ -219,7 +219,6 @@ void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint)
             j++;
         }
     }
-    stopPoint = count; // Tracks the last used card index in the deck
 }
 
 void giveChips(int* plPots, size_t plCount)
@@ -455,7 +454,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     delete[] choice;
 }
 
-void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t plCount, size_t& pot, int* plPots, bool& game)
+void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount)
 {
     //Initialize variables
     size_t comb = 0;
@@ -464,28 +463,23 @@ void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t plCoun
     size_t tempSize = PLAYER_CARDS * 2;
     char* continueGame = new char[ARRAY_SIZE];
 
-    //For loop so we can find the highest scoring hand from the active players
-    for (int i = 0; i < plCount; i++)
+    //Check for highest scoring hand
+    for (int i = 0; i < originalCount; i++)
     {
-        skipPlayer(activePl, playerTracker, plCount); //Skip the inactive players
-        if (cardCombs(hands, playerTracker) > maxComb)
+        if (activePl[i])
         {
-            maxComb = cardCombs(hands, playerTracker);
-            winner = playerTracker;
-        }
-        playerTracker++;
-        if (playerTracker >= plCount)
-        {
-            playerTracker = 0;
+            size_t curretnComb = cardCombs(hands, i);
+            if (curretnComb > maxComb)
+            {
+                maxComb = curretnComb;
+                winner = i;
+            }
         }
     }
 
     //Display the winner, give him the chips and reset the pot
-    std::cout << "Player" << playerTracker << " wins " << pot << " chips!!!" << std::endl;
-    if (cardCombs(hands, playerTracker) == maxComb)
-    {
-        plPots[winner] += pot;
-    }
+    std::cout << "Player" << winner + 1 << " wins " << pot << " chips!!!" << std::endl;
+    plPots[winner] += pot;
     pot = 0;
 
     std::cout << "Continiue playin?..." << std::endl;
