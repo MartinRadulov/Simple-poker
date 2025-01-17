@@ -1,3 +1,7 @@
+//Fix player 1 always winning
+//Fix the folding players
+//If one player is active then he wins
+//If someone other than player one riases then it should loop back to the beggining
 #include <iostream>
 
 const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
@@ -22,7 +26,9 @@ void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(char** a, size_t playerTracker);
 size_t cardCombs(char** hands, size_t playerTracker);
+void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
+void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t plCount, size_t& pot, int* plPots, bool& game);
 
 int main()
 {
@@ -36,6 +42,7 @@ int main()
     size_t pot = 0;
     size_t betAmount = 0;
     size_t cardIndex = 0;
+    bool game = true;
     char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
     char** deck = new char* [CARD_AMOUNT];
@@ -55,14 +62,21 @@ int main()
     givePlHands(deck, hands, plCount, stopPoint);
     giveChips(plPots, plCount);
 
-    // Display initial chip amounts
-    consoleMessage2(plPots, plCount);
-
-    // Example usage of playerMessage
-    for (size_t i = 0; i < plCount; i++)
+    //Start the game
+    while (game && plCount > 1)
     {
-        playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
+        consoleMessage2(plPots, plCount);
+        for (size_t i = 0; i < plCount; i++)
+        {
+            playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
+        }
+        playerWin(hands, playerTracker, activePl, plCount, pot, plPots, game);
     }
+    if (plCount <= 1)
+    {
+        std::cout << "Game over, not enough players";
+    }
+
 
     //Free memory
     delete[] suitless;
@@ -76,6 +90,7 @@ int main()
 
 void consoleMessage1()
 {
+    //Prints out the opening message
     std::cout << "Welcome to simple poker!" << std::endl;
     std::cout << "------------------------" << std::endl;
     std::cout << "How many players are going to play?" << std::endl;
@@ -84,6 +99,7 @@ void consoleMessage1()
 
 void createDynamicChar(char** a, size_t size)
 {
+    //Creates a dynamic char array
     for (int i = 0; i < size; i++)
     {
         a[i] = new char[ROW_SIZE];
@@ -92,6 +108,7 @@ void createDynamicChar(char** a, size_t size)
 
 void createDynamicBool(bool* a)
 {
+    //Creates a bool arrays with every element being "true"
     for (int i = 0; i < ARRAY_SIZE; i++)
     {
         a[i] = true;
@@ -100,6 +117,7 @@ void createDynamicBool(bool* a)
 
 void freeMemory(char** a, size_t size)
 {
+    //Frees memory, used for the dynamic double arrays
     for (int i = 0; i < size; i++)
     {
         delete[] a[i];
@@ -108,6 +126,7 @@ void freeMemory(char** a, size_t size)
 
 size_t playerCount()
 {
+    //Checks if the allowed number of players are playing
     size_t count = 0;
     std::cin >> count;
     if (count < MIN_PLAYERS || count > MAX_PLAYERS)
@@ -120,6 +139,7 @@ size_t playerCount()
 
 bool strCompare(const char* str1, const char* str2)
 {
+    //Basic string compare function
     while (*str1 && *str2)
     {
         if (*str1 != *str2)
@@ -134,11 +154,12 @@ bool strCompare(const char* str1, const char* str2)
 
 void createDeckNumbers(char* a)
 {
+    //Make four cards for every rank from 7 - Ace
     int i = 0, counter = 0;
-    char faces1[] = { '7', '8', '9', 'D', 'J', 'Q', 'K', 'A' };
+    char ranks[] = { '7', '8', '9', 'D', 'J', 'Q', 'K', 'A' };
     for (int j = 0; j < CARD_AMOUNT; j++)
     {
-        a[j] = faces1[i];
+        a[j] = ranks[i];
         counter++;
         if (counter == 4)
         {
@@ -150,6 +171,7 @@ void createDeckNumbers(char* a)
 
 void combineChars(const char* a, const char* b, char** comb)
 {
+    //Using a basic function for combining chars
     int suit = 0;
     for (int j = 0; j < CARD_AMOUNT; j++)
     {
@@ -165,7 +187,9 @@ void combineChars(const char* a, const char* b, char** comb)
 
 void shuffleCards(char** a)
 {
-    std::srand(time(0));
+    //Set a random srand seed so the shuffle is random every time
+    //Then change the i card with the random card
+    std::srand(time(0)); //Using time() because there isnt a "true" random function
     for (int i = 0; i < CARD_AMOUNT; i++)
     {
         size_t random = i + rand() % (CARD_AMOUNT - i);
@@ -200,6 +224,7 @@ void givePlHands(char** deck, char** hands, size_t plCount, size_t& stopPoint)
 
 void giveChips(int* plPots, size_t plCount)
 {
+    //Give every player a starting value of 1000 chips
     for (int i = 0; i < plCount; i++)
     {
         plPots[i] = 100 * CHIP_VALUE;
@@ -226,6 +251,9 @@ void consoleMessage2(int* plPots, size_t plCount)
         std::cout << "Player" << (i + 1) << ": " << plPots[i] << "| ";
     }
     std::cout << std::endl;
+    std::cout << "Press enter to continue..." << std::endl;
+    std::cin.ignore();
+    std::cin.get();
 }
 
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker)
@@ -341,18 +369,24 @@ size_t cardCombs(char** hands, size_t playerTracker)
     return highCard;
 }
 
+void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount)
+{
+    //While loop for skiping an inactive player
+    while (!activePl[playerTracker])
+    {
+        playerTracker++;
+        if (playerTracker >= plCount)
+        {
+            playerTracker = 0;
+        }
+    }
+}
+
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
 {
     //Skipping the inactive players
     size_t tempTracker = playerTracker - 1;
-    while (!activePl[tempTracker])
-    {
-        tempTracker++;
-        if (tempTracker >= plCount)
-        {
-            tempTracker = 0;
-        }
-    }
+    skipPlayer(activePl, playerTracker, plCount);
 
     //Clears the console
     std::cout << "\x1B[2J\x1B[H";
@@ -362,7 +396,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     std::cout << "Current bet: " << betAmount << std::endl << std::endl;
     playerTracker = tempTracker + 1;
     int cards = PLAYER_CARDS * 2;
-    char choice[ARRAY_SIZE];
+    char* choice = new char[ARRAY_SIZE];
     std::cout << "Player" << playerTracker << ":" << std::endl;
     std::cout << "Chips: " << plPots[tempTracker] << std::endl;
     for (int i = 0; i < cards; i++)
@@ -418,4 +452,52 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
         playerTracker = 1;
         betAmount = 0;
     }
+    delete[] choice;
+}
+
+void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t plCount, size_t& pot, int* plPots, bool& game)
+{
+    //Initialize variables
+    size_t comb = 0;
+    size_t winner = 0;
+    size_t maxComb = 0;
+    size_t tempSize = PLAYER_CARDS * 2;
+    char* continueGame = new char[ARRAY_SIZE];
+
+    //For loop so we can find the highest scoring hand from the active players
+    for (int i = 0; i < plCount; i++)
+    {
+        skipPlayer(activePl, playerTracker, plCount); //Skip the inactive players
+        if (cardCombs(hands, playerTracker) > maxComb)
+        {
+            maxComb = cardCombs(hands, playerTracker);
+            winner = playerTracker;
+        }
+        playerTracker++;
+        if (playerTracker >= plCount)
+        {
+            playerTracker = 0;
+        }
+    }
+
+    //Display the winner, give him the chips and reset the pot
+    std::cout << "Player" << playerTracker << " wins " << pot << " chips!!!" << std::endl;
+    if (cardCombs(hands, playerTracker) == maxComb)
+    {
+        plPots[winner] += pot;
+    }
+    pot = 0;
+
+    std::cout << "Continiue playin?..." << std::endl;
+    std::cout << "Type (YES) to continue playing" << std::endl;
+    std::cin.getline(continueGame, ARRAY_SIZE);
+    if (strCompare(continueGame, "YES"))
+    {
+        game = true;
+    }
+    else
+    {
+        game = false;
+    }
+    delete[] continueGame;
 }
