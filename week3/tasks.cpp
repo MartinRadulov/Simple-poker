@@ -1,6 +1,9 @@
 //Make structs
 //If someone other than player one riases then it should loop back to the beggining
 //fix joker for all combos , ace pair/flush/something else if there is any
+//make possible for mulitple people to win
+//da se zapisva v fail
+//ako nqkoi nqma poveche pari da ne moje da igrae poveche
 #include <iostream>
 
 const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
