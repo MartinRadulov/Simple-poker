@@ -27,6 +27,7 @@ size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(char** a, size_t playerTracker);
 size_t cardCombs(char** hands, size_t playerTracker);
 void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount);
+//void resetGame(int* plPots, bool* activePl, size_t plCount, size_t& pot, size_t& betAmount);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
 void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount);
 
@@ -371,21 +372,54 @@ size_t cardCombs(char** hands, size_t playerTracker)
 void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount)
 {
     //While loop for skiping an inactive player
-    while (!activePl[playerTracker])
+    size_t startPos = playerTracker;
+    //playerTracker = (playerTracker + 1) % plCount; //Move to the next player and loop aroun if necessary
+    //while (!activePl[playerTracker] && playerTracker != startPos)
+    //{
+    //    playerTracker++;
+    //    if (playerTracker >= plCount)
+    //    {
+    //        playerTracker = 0;
+    //    }
+    //}
+    //if (!activePl[playerTracker])
+    //{
+    //    playerTracker = plCount;
+    //}
+    do
     {
-        playerTracker++;
-        if (playerTracker >= plCount)
+        playerTracker = (playerTracker + 1) % plCount;
+        if (activePl[playerTracker])
         {
-            playerTracker = 0;
+            return; // Found the next active player
         }
-    }
+    } while (playerTracker != startPos);
 }
+
 
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
 {
     //Skipping the inactive players
     size_t tempTracker = playerTracker - 1;
     skipPlayer(activePl, playerTracker, plCount);
+
+    size_t activePlayer = 0;
+    size_t lastActivePlayer;
+    for (size_t i = 0; i < plCount; i++)
+    {
+        if (activePl[i])
+        {
+            activePlayer++;
+            lastActivePlayer = i;
+        }
+    }
+    if (activePlayer == 1)
+    {
+        std::cout << "Player " << (lastActivePlayer + 1) << " wins as all others folded!" << std::endl;
+        activePl[lastActivePlayer] = false;
+        return;
+    }
+
 
     //Clears the console
     std::cout << "\x1B[2J\x1B[H";
@@ -488,6 +522,10 @@ void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, 
     if (strCompare(continueGame, "YES"))
     {
         game = true;
+        for (size_t i = 0; i < originalCount; i++)
+        {
+            activePl[i] = true;
+        }
     }
     else
     {
