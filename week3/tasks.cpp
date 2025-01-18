@@ -1,4 +1,4 @@
-//Fix the folding players
+//Make structs
 //If someone other than player one riases then it should loop back to the beggining
 //fix joker for all combos , ace pair/flush/something else if there is any
 #include <iostream>
@@ -6,6 +6,15 @@
 const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
 const size_t MIN_PLAYERS = 2, MAX_PLAYERS = 9, PLAYER_CARDS = 3, CHIP_VALUE = 10;
 const size_t ACE_PAIR = 22, SEVEN_PAIR = 23, THREE_SEVENS = 34;
+
+struct Deck
+{
+    char* suitless;
+    char suits[4];
+    char** cards;
+};
+
+void initDeck
 
 void consoleMessage1();
 void createDynamicChar(char** a, size_t size);
@@ -25,6 +34,7 @@ void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(char** a, size_t playerTracker);
 size_t cardCombs(char** hands, size_t playerTracker);
+//void raiseOccured()
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl, size_t originalCount);
 void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount);
 
