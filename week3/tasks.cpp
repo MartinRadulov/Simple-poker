@@ -14,7 +14,45 @@ struct Deck
     char** cards;
 };
 
-void initDeck
+void initDeck(Deck& deck)
+{
+    deck.suitless = new char[CARD_AMOUNT];
+    deck.suits[0] = 'C';
+    deck.suits[1] = 'H';
+    deck.suits[2] = 'D';
+    deck.suits[3] = 'S';
+    deck.cards = new char* [CARD_AMOUNT];
+    createDynamicChar(deck.cards, CARD_AMOUNT);
+}
+
+void freeDeck(Deck& deck)
+{
+    delete[] deck.suitless;
+    freeMemory(deck.cards, CARD_AMOUNT);
+}
+
+struct Player
+{
+    char** hands;
+    int* plPots;
+    bool* activePl;
+};
+
+void initPlayer(Player& player, size_t count)
+{
+    player.hands = new char* [ARRAY_SIZE];
+    createDynamicChar(player.hands, count);
+    player.plPots = new int[ARRAY_SIZE];
+    player.activePl = new bool[ARRAY_SIZE];
+    createDynamicBool(player.activePl);
+}
+
+void freePlayer(Player& player)
+{
+    freeMemory(player.hands, ARRAY_SIZE);
+    delete[] player.plPots;
+    delete[] player.activePl;
+}
 
 void consoleMessage1();
 void createDynamicChar(char** a, size_t size);
@@ -46,14 +84,19 @@ int main()
     //Initialize variables
     size_t plCount = playerCount();
     size_t originalCount = plCount;
-    size_t stopPoint = 0;
     size_t playerTracker = 1;
     size_t pot = 0;
     size_t betAmount = 0;
     size_t cardIndex = 0;
     size_t activePlayerCount;
     bool game = true;
-    char* suitless = new char[CARD_AMOUNT];
+
+    Deck deck;
+    initDeck(deck);
+    Player player;
+    initPlayer(player, plCount);
+
+    /*char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
     char** deck = new char* [CARD_AMOUNT];
     createDynamicChar(deck, CARD_AMOUNT);
@@ -61,44 +104,41 @@ int main()
     createDynamicChar(hands, plCount);
     int* plPots = new int[ARRAY_SIZE];
     bool* activePl = new bool[ARRAY_SIZE];
-    createDynamicBool(activePl);
+    createDynamicBool(activePl);*/
 
     //Create the deck and shuffle it
-    createDeckNumbers(suitless);
-    combineChars(suitless, suits, deck);
-    shuffleCards(deck);
+    createDeckNumbers(deck.suitless);
+    combineChars(deck.suitless, deck.suits, deck.cards);
+    shuffleCards(deck.cards);
 
     //Give cards and chips to players
-    givePlHands(deck, hands, plCount);
-    giveChips(plPots, plCount);
+    givePlHands(deck.cards, player.hands, plCount);
+    giveChips(player.plPots, plCount);
 
     //Start the game and continue if required
     while (game && plCount > 1)
     {
         //Reshuffle the deck and deal new cards if the game continues
-        shuffleCards(deck);
-        givePlHands(deck, hands, plCount);
-        consoleMessage2(plPots, plCount);
+        shuffleCards(deck.cards);
+        givePlHands(deck.cards, player.hands, plCount);
+        consoleMessage2(player.plPots, plCount);
 
         for (size_t i = 0; i < originalCount; i++)
         {
-            playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl, originalCount);
+            playerMessage(player.hands, playerTracker, plCount, player.plPots, pot, betAmount, player.activePl, originalCount);
         }
         if (plCount <= 1)
         {
-            playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
+            playerWin(player.hands, playerTracker, player.activePl, pot, player.plPots, game, originalCount);
             break;
         }
-        playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
+        playerWin(player.hands, playerTracker, player.activePl, pot, player.plPots, game, originalCount);
         plCount = originalCount; // Reseting to the original amount of players
     }
 
     //Free memory
-    delete[] suitless;
-    freeMemory(deck, CARD_AMOUNT);
-    freeMemory(hands, ARRAY_SIZE);
-    delete[] plPots;
-    delete[] activePl;
+    freeDeck(deck);
+    freePlayer(player);
 
     return 0;
 }
@@ -218,37 +258,37 @@ void shuffleCards(char** a)
     }
 }
 
-void givePlHands(char** deck, char** hands, size_t plCount)
+void givePlHands(Deck& deck, Player& player, size_t plCount)
 {
     size_t count = 0;
     for (int i = 0; i < plCount; i++)
     {
-        hands[i] = new char[PLAYER_CARDS * 2];
+        player.hands[i] = new char[PLAYER_CARDS * 2];
         size_t j = 0;
         for (int cards = 0; cards < PLAYER_CARDS; cards++)
         {
-            hands[i][j] = deck[count][0];
+            player.hands[i][j] = deck.cards[count][0];
             j++;
-            hands[i][j] = deck[count][1];
+            player.hands[i][j] = deck.cards[count][1];
             count++;
             j++;
         }
     }
 }
 
-void giveChips(int* plPots, size_t plCount)
+void giveChips(Player& player, size_t plCount)
 {
     //Give every player a starting value of 1000 chips
     for (int i = 0; i < plCount; i++)
     {
-        plPots[i] = 100 * CHIP_VALUE;
+        player.plPots[i] = 100 * CHIP_VALUE;
     }
 }
 
-void foldPlayer(size_t& playerIndex, size_t& plCount, bool* activePl)
+void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount)
 {
     //Set the player as inactive
-    activePl[playerIndex] = false;
+    player.activePl[playerIndex] = false;
 
     //Reduce the amount of palyers
     plCount--;
@@ -303,7 +343,7 @@ size_t highestValue(char** hands, size_t playerTracker)
     return tempMax;
 }
 
-size_t cardCombs(char** hands, size_t playerTracker)
+size_t cardCombs(Player& player, size_t playerTracker)
 {
     size_t combAmount = 0;
     size_t suitAmount = 0;
@@ -313,12 +353,12 @@ size_t cardCombs(char** hands, size_t playerTracker)
     size_t aceCounter = 0;
     size_t sevenCounter = 0;
     bool joker = false;
-    size_t highCard = highestValue(hands, playerTracker);
+    size_t highCard = highestValue(player.hands, playerTracker);
 
     //Search for the joker
     for (int rank = 0, suit = 1; rank < tempSize; rank += 2, suit += 2)
     {
-        if (hands[playerTracker][rank] == '7' && hands[playerTracker][suit] == 'C')
+        if (player.hands[playerTracker][rank] == '7' && player.hands[playerTracker][suit] == 'C')
         {
             joker = true;
             rankCounter++; //Only two cards would be needed now for the three of a kind
@@ -331,18 +371,18 @@ size_t cardCombs(char** hands, size_t playerTracker)
     for (int rank = 0, suit = 1; suit <= PLAYER_CARDS; rank += 2, suit += 2) //Only one loop is required
     {
         //Counter goes up by 1 if there are mathing ranks
-        if (hands[playerTracker][rank] == hands[playerTracker][rank + 2]) //checks the next rank
+        if (player.hands[playerTracker][rank] == player.hands[playerTracker][rank + 2]) //checks the next rank
         {
             rankCounter++;
-            combAmount = giveValue(hands, playerTracker, rank) * rankCounter;
+            combAmount = giveValue(player.hands, playerTracker, rank) * rankCounter;
         }
 
         //Check for 7 or Ace because they can also have a pair
-        if (hands[playerTracker][rank] == '7')
+        if (player.hands[playerTracker][rank] == '7')
         {
             sevenCounter++;
         }
-        if (hands[playerTracker][rank] == 'A')
+        if (player.hands[playerTracker][rank] == 'A')
         {
             aceCounter++;
         }
@@ -360,9 +400,9 @@ size_t cardCombs(char** hands, size_t playerTracker)
         }
 
         //Checks for matching suit
-        if (hands[playerTracker][suit] == hands[playerTracker][suit + 2])
+        if (player.hands[playerTracker][suit] == player.hands[playerTracker][suit + 2])
         {
-            combAmount += giveValue(hands, playerTracker, rank);
+            combAmount += giveValue(player.hands, playerTracker, rank);
         }
     }
 
@@ -383,7 +423,7 @@ size_t cardCombs(char** hands, size_t playerTracker)
     return highCard;
 }
 
-void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl, size_t originalCount)
+void playerMessage(Player& player, size_t& playerTracker, size_t plCount, size_t& pot, size_t& betAmount, size_t originalCount)
 {
     size_t tempTracker = playerTracker - 1;
 
@@ -397,10 +437,10 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     int cards = PLAYER_CARDS * 2;
     char* choice = new char[ARRAY_SIZE];
     std::cout << "Player" << playerTracker << ":" << std::endl;
-    std::cout << "Chips: " << plPots[tempTracker] << std::endl;
+    std::cout << "Chips: " << player.plPots[tempTracker] << std::endl;
     for (int i = 0; i < cards; i++)
     {
-        std::cout << hands[tempTracker][i++] << hands[tempTracker][i] << " ";
+        std::cout << player.hands[tempTracker][i++] << player.hands[tempTracker][i] << " ";
     }
     std::cout << std::endl;
 
@@ -412,7 +452,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
         size_t raiseAmount = 0;
         std::cout << "Raise to:" << std::endl;
         std::cin >> raiseAmount;
-        if (raiseAmount > betAmount && raiseAmount <= plPots[tempTracker])
+        if (raiseAmount > betAmount && raiseAmount <= player.plPots[tempTracker])
         {
             betAmount = raiseAmount;
         }
@@ -420,20 +460,20 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
         {
             std::cout << "Raise is lower, automaticly check" << std::endl;
         }
-        plPots[tempTracker] -= betAmount;
+        player.plPots[tempTracker] -= betAmount;
         pot += betAmount;
 
     }
     else if (strCompare(choice, "check"))
     {
         std::cout << "Checked" << std::endl;
-        plPots[tempTracker] -= betAmount;
+        player.plPots[tempTracker] -= betAmount;
         pot += betAmount;
     }
     else if (strCompare(choice, "fold"))
     {
         std::cout << "Folded" << std::endl;
-        foldPlayer(tempTracker, plCount, activePl);
+        foldPlayer(tempTracker, plCount, player.activePl);
     }
     else
     {
@@ -452,7 +492,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
             playerTracker = 1; // Wrap back to the first player
         }
     } 
-    while (!activePl[tempTracker]); //Makes sure it does this at least once even without the while
+    while (!player.activePl[tempTracker]); //Makes sure it does this at least once even without the while
 
 
 
@@ -460,7 +500,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     delete[] choice;
 }
 
-void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount)
+void playerWin(Player& player, size_t playerTracker, size_t& pot, bool& game, size_t originalCount)
 {
     //Initialize variables
     size_t comb = 0;
@@ -472,9 +512,9 @@ void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, 
     //Check for highest scoring hand
     for (int i = 0; i < originalCount; i++)
     {
-        if (activePl[i])
+        if (player.activePl[i])
         {
-            size_t curretnComb = cardCombs(hands, i);
+            size_t curretnComb = cardCombs(player.hands, i);
             if (curretnComb > maxComb)
             {
                 maxComb = curretnComb;
@@ -485,7 +525,7 @@ void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, 
 
     //Display the winner, give him the chips and reset the pot
     std::cout << "Player" << winner + 1 << " wins " << pot << " chips!!!" << std::endl;
-    plPots[winner] += pot;
+    player.plPots[winner] += pot;
     pot = 0;
 
     std::cout << "Continiue playin?..." << std::endl;
@@ -496,7 +536,7 @@ void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, 
         game = true;
         for (size_t i = 0; i < originalCount; i++)
         {
-            activePl[i] = true;
+            player.activePl[i] = true;
         }
     }
     else
