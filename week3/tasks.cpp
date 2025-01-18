@@ -25,9 +25,7 @@ void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(char** a, size_t playerTracker);
 size_t cardCombs(char** hands, size_t playerTracker);
-void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount);
-void nextTurn(size_t& playerTracker, bool* activePl, size_t originalCount);
-void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
+void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl, size_t originalCount);
 void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount);
 
 int main()
@@ -43,6 +41,7 @@ int main()
     size_t pot = 0;
     size_t betAmount = 0;
     size_t cardIndex = 0;
+    size_t activePlayerCount;
     bool game = true;
     char* suitless = new char[CARD_AMOUNT];
     char suits[] = { 'C', 'H', 'D', 'S' };
@@ -71,29 +70,15 @@ int main()
         givePlHands(deck, hands, plCount);
         consoleMessage2(plPots, plCount);
 
-        size_t activePlayerCount = 0;
-        for (size_t i = 0; i < plCount; ++i) {
-            if (activePl[i]) {
-                activePlayerCount++;
-            }
+        for (size_t i = 0; i < originalCount; i++)
+        {
+            playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl, originalCount);
         }
-
-        //If theres only one active player left, the game ends
-        if (activePlayerCount <= 1)
+        if (plCount <= 1)
         {
             playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
             break;
         }
-
-        for (size_t i = 0; i < plCount; i++)
-        {
-            if (activePl[i])
-            {
-                playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
-                nextTurn(playerTracker, activePl, originalCount);
-            }
-        }
-        nextTurn(playerTracker, activePl, originalCount);
         playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
         plCount = originalCount; // Reseting to the original amount of players
     }
@@ -388,61 +373,9 @@ size_t cardCombs(char** hands, size_t playerTracker)
     return highCard;
 }
 
-void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount)
+void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl, size_t originalCount)
 {
-    //While loop for skiping an inactive player
-    size_t startPos = playerTracker;
-    playerTracker = (playerTracker + 1) % plCount; //Move to the next player and loop aroun if necessary
-    while (!activePl[playerTracker] && playerTracker != startPos)
-    {
-        playerTracker++;
-        if (playerTracker >= plCount)
-        {
-            playerTracker = 0;
-        }
-    }
-    if (!activePl[playerTracker])
-    {
-        playerTracker = plCount;
-    }
-}
-
-void nextTurn(size_t& playerTracker, bool* activePl, size_t originalCount)
-{
-    while (!activePl[playerTracker])
-    {
-        playerTracker++;
-        if (playerTracker >= originalCount)
-        {
-            playerTracker = 0;
-        }
-    }
-
-}
-
-void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
-{
-    //Skipping the inactive players
     size_t tempTracker = playerTracker - 1;
-    skipPlayer(activePl, playerTracker, plCount);
-
-    size_t activePlayer = 0;
-    size_t lastActivePlayer;
-    for (size_t i = 0; i < plCount; i++)
-    {
-        if (activePl[i])
-        {
-            activePlayer++;
-            lastActivePlayer = i;
-        }
-    }
-    if (activePlayer == 1)
-    {
-        std::cout << "Player " << (lastActivePlayer + 1) << " wins as all others folded!" << std::endl;
-        activePl[lastActivePlayer] = false;
-        return;
-    }
-
 
     //Clears the console
     std::cout << "\x1B[2J\x1B[H";
@@ -450,7 +383,7 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     //Display players cards and chips
     std::cout << "Current pot: " << pot << std::endl;
     std::cout << "Current bet: " << betAmount << std::endl << std::endl;
-    playerTracker = tempTracker + 1;
+    //playerTracker = tempTracker + 1;
     int cards = PLAYER_CARDS * 2;
     char* choice = new char[ARRAY_SIZE];
     std::cout << "Player" << playerTracker << ":" << std::endl;
@@ -502,12 +435,18 @@ void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plP
     std::cin.ignore();
     std::cin.get();
 
-    //Update to the next player
-    playerTracker++;
-    if (playerTracker > plCount) {
-        playerTracker = 1;
-        betAmount = 0;
-    }
+    do
+    {
+        playerTracker++;
+        if (playerTracker > originalCount) {
+            playerTracker = 1; // Wrap back to the first player
+        }
+    } 
+    while (!activePl[tempTracker]); //Makes sure it does this at least once even without the while
+
+
+
+
     delete[] choice;
 }
 

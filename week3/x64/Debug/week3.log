@@ -1,7 +1,8 @@
 ﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(531,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (week3.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   tasks.cpp
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(213,20): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(481,32): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(488,32): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(540,23): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(44,12): warning C4101: 'activePlayerCount': unreferenced local variable
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(197,20): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(413,32): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(420,32): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(478,23): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
   week3.vcxproj -> C:\Users\sussus amogus\source\repos\week3\x64\Debug\Simple poker.exe
