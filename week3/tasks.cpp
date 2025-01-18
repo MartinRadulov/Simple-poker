@@ -1,5 +1,4 @@
 //Fix the folding players
-//If one player is active then he wins
 //If someone other than player one riases then it should loop back to the beggining
 //fix joker for all combos , ace pair/flush/something else if there is any
 #include <iostream>
@@ -27,7 +26,7 @@ size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(char** a, size_t playerTracker);
 size_t cardCombs(char** hands, size_t playerTracker);
 void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount);
-//void resetGame(int* plPots, bool* activePl, size_t plCount, size_t& pot, size_t& betAmount);
+void nextTurn(size_t& playerTracker, bool* activePl, size_t originalCount);
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl);
 void playerWin(char** hands, size_t playerTracker, bool* activePl, size_t& pot, int* plPots, bool& game, size_t originalCount);
 
@@ -71,10 +70,30 @@ int main()
         shuffleCards(deck);
         givePlHands(deck, hands, plCount);
         consoleMessage2(plPots, plCount);
+
+        size_t activePlayerCount = 0;
+        for (size_t i = 0; i < plCount; ++i) {
+            if (activePl[i]) {
+                activePlayerCount++;
+            }
+        }
+
+        //If theres only one active player left, the game ends
+        if (activePlayerCount <= 1)
+        {
+            playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
+            break;
+        }
+
         for (size_t i = 0; i < plCount; i++)
         {
-            playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
+            if (activePl[i])
+            {
+                playerMessage(hands, playerTracker, plCount, plPots, pot, betAmount, activePl);
+                nextTurn(playerTracker, activePl, originalCount);
+            }
         }
+        nextTurn(playerTracker, activePl, originalCount);
         playerWin(hands, playerTracker, activePl, pot, plPots, game, originalCount);
         plCount = originalCount; // Reseting to the original amount of players
     }
@@ -373,29 +392,33 @@ void skipPlayer(bool* activePl, size_t& playerTracker, size_t plCount)
 {
     //While loop for skiping an inactive player
     size_t startPos = playerTracker;
-    //playerTracker = (playerTracker + 1) % plCount; //Move to the next player and loop aroun if necessary
-    //while (!activePl[playerTracker] && playerTracker != startPos)
-    //{
-    //    playerTracker++;
-    //    if (playerTracker >= plCount)
-    //    {
-    //        playerTracker = 0;
-    //    }
-    //}
-    //if (!activePl[playerTracker])
-    //{
-    //    playerTracker = plCount;
-    //}
-    do
+    playerTracker = (playerTracker + 1) % plCount; //Move to the next player and loop aroun if necessary
+    while (!activePl[playerTracker] && playerTracker != startPos)
     {
-        playerTracker = (playerTracker + 1) % plCount;
-        if (activePl[playerTracker])
+        playerTracker++;
+        if (playerTracker >= plCount)
         {
-            return; // Found the next active player
+            playerTracker = 0;
         }
-    } while (playerTracker != startPos);
+    }
+    if (!activePl[playerTracker])
+    {
+        playerTracker = plCount;
+    }
 }
 
+void nextTurn(size_t& playerTracker, bool* activePl, size_t originalCount)
+{
+    while (!activePl[playerTracker])
+    {
+        playerTracker++;
+        if (playerTracker >= originalCount)
+        {
+            playerTracker = 0;
+        }
+    }
+
+}
 
 void playerMessage(char** hands, size_t& playerTracker, size_t plCount, int* plPots, size_t& pot, size_t& betAmount, bool* activePl)
 {
