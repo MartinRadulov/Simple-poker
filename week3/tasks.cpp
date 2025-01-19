@@ -25,13 +25,20 @@ struct Player
     bool* activePl;
 };
 
-struct GameComponents
+struct GameLogic
 {
+    //size_t plCount;
     size_t originalCount;
+    size_t playerTracker;
+    size_t pot;
+    size_t betAmount;
+    bool roundEnded;
+    bool game;
 
 };
 
 //Initiazlize all needed fucntions
+void initLogic(GameLogic& game, size_t plCount);
 void initDeck(Deck& deck);
 void freeDeck(Deck& deck);
 void initPlayer(Player& player, size_t count);
@@ -47,16 +54,16 @@ size_t playerCount();
 void shuffleCards(char** a);
 void givePlHands(Deck& deck, Player& player, size_t plCount);
 void giveChips(Player& player, size_t plCount); 
-void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount, size_t originalCount, size_t& pot, bool& game, bool& roundEnded);
+void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount, GameLogic& game);
 void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(Player& player, size_t playerTracker);
 size_t cardCombs(Player& player, size_t playerTracker);
 //void raiseOccured()
-void playerMessage(Player& player, size_t& playerTracker, size_t& plCount, size_t& pot, size_t& betAmount, size_t originalCount, bool& game, bool& roundEnded);
-void playerWin(Player& player, size_t playerTracker, size_t& pot, bool& game, size_t originalCount, bool& roundEnded);
-void checkWinner(Player& player, size_t& plCount, size_t originalCount, size_t& pot, bool& game, bool& roundEnded);
-void winningMessage(Player& player, bool& game, size_t originalCount, bool& roundEnded);
+void playerMessage(Player& player, GameLogic& game, size_t& plCount);
+void playerWin(Player& player, GameLogic& game);
+void checkWinner(Player& player, size_t& plCount, GameLogic& game);
+void winningMessage(Player& player, GameLogic& game);
 
 int main()
 {
@@ -64,15 +71,18 @@ int main()
     consoleMessage1();
 
     //Initialize variables
-    size_t plCount = playerCount();
+    /*size_t plCount = playerCount();
     size_t originalCount = plCount;
     size_t playerTracker = 1;
     size_t pot = 0;
     size_t betAmount = 0;
     bool roundEnded = false;
-    bool game = true;
+    bool game = true;*/
 
     //Initialize the palyer and the deck
+    size_t plCount = playerCount();
+    GameLogic game;
+    initLogic(game, plCount);
     Deck deck;
     initDeck(deck);
     Player player;
@@ -88,26 +98,26 @@ int main()
     giveChips(player, plCount);
 
     //Start the game and continue if required
-    while (game && plCount > 1)
+    while (game.game && plCount > 1)
     {
         //Reshuffle the deck and deal new cards if the game continues
-        plCount = originalCount; // Reseting to the original amount of players
-        game = false;
+        plCount = game.originalCount; // Reseting to the original amount of players
+        game.game = false;
         shuffleCards(deck.cards);
         givePlHands(deck, player, plCount);
         consoleMessage2(player.plPots, plCount);
-        playerTracker = 1;
+        game.playerTracker = 1;
 
-        for (size_t i = 0; i < originalCount; i++)
+        for (size_t i = 0; i < game.originalCount; i++)
         {
-            playerMessage(player, playerTracker, plCount, pot, betAmount, originalCount, game, roundEnded);
+            playerMessage(player, game, plCount);
         }
-        if (game)
+        if (game.game)
         {
             continue;
         }
 
-        playerWin(player, playerTracker, pot, game, originalCount, roundEnded);
+        playerWin(player, game);
         //plCount = originalCount; // Reseting to the original amount of players
     }
 
@@ -116,6 +126,16 @@ int main()
     freePlayer(player);
 
     return 0;
+}
+
+void initLogic(GameLogic& game, size_t plCount)
+{
+    game.originalCount = plCount;
+    game.playerTracker = 1;
+    game.pot = 0;
+    game.betAmount = 0;
+    game.roundEnded = false;
+    game.game = true;
 }
 
 void initPlayer(Player& player, size_t count)
@@ -293,7 +313,7 @@ void giveChips(Player& player, size_t plCount)
     }
 }
 
-void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount, size_t originalCount, size_t& pot, bool& game, bool& roundEnded)
+void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount, GameLogic& game)
 {
     //Set the player as inactive
     player.activePl[playerIndex] = false;
@@ -302,7 +322,7 @@ void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount, size_t ori
     plCount--;
     if (plCount == 1)
     {
-        checkWinner(player, plCount, originalCount, pot, game, roundEnded);
+        checkWinner(player, plCount, game);
     }
 }
 
@@ -386,7 +406,7 @@ size_t cardCombs(Player& player, size_t playerTracker)
         if (player.hands[playerTracker][rank] == player.hands[playerTracker][rank + 2]) //checks the next rank
         {
             rankCounter++;
-            combAmount = giveValue(player.hands, playerTracker, rank) * rankCounter;
+            combAmount = giveValue(player.hands, rank, playerTracker) * rankCounter;
         }
 
         //Check for 7 or Ace because they can also have a pair
@@ -414,7 +434,7 @@ size_t cardCombs(Player& player, size_t playerTracker)
         //Checks for matching suit
         if (player.hands[playerTracker][suit] == player.hands[playerTracker][suit + 2])
         {
-            combAmount += giveValue(player.hands, playerTracker, rank);
+            combAmount += giveValue(player.hands, rank, playerTracker);
         }
     }
 
@@ -435,20 +455,20 @@ size_t cardCombs(Player& player, size_t playerTracker)
     return highCard;
 }
 
-void playerMessage(Player& player, size_t& playerTracker, size_t& plCount, size_t& pot, size_t& betAmount, size_t originalCount, bool& game, bool& roundEnded)
+void playerMessage(Player& player, GameLogic& game, size_t& plCount)
 {
-    size_t tempTracker = playerTracker - 1;
+    size_t tempTracker = game.playerTracker - 1;
 
     //Clears the console
     std::cout << "\x1B[2J\x1B[H";
 
     //Display players cards and chips
-    std::cout << "Current pot: " << pot << std::endl;
-    std::cout << "Current bet: " << betAmount << std::endl << std::endl;
+    std::cout << "Current pot: " << game.pot << std::endl;
+    std::cout << "Current bet: " << game.betAmount << std::endl << std::endl;
     //playerTracker = tempTracker + 1;
     int cards = PLAYER_CARDS * 2;
     char* choice = new char[ARRAY_SIZE];
-    std::cout << "Player" << playerTracker << ":" << std::endl;
+    std::cout << "Player" << game.playerTracker << ":" << std::endl;
     std::cout << "Chips: " << player.plPots[tempTracker] << std::endl;
     for (int i = 0; i < cards; i++)
     {
@@ -464,28 +484,28 @@ void playerMessage(Player& player, size_t& playerTracker, size_t& plCount, size_
         size_t raiseAmount = 0;
         std::cout << "Raise to:" << std::endl;
         std::cin >> raiseAmount;
-        if (raiseAmount > betAmount && raiseAmount <= player.plPots[tempTracker])
+        if (raiseAmount > game.betAmount && raiseAmount <= player.plPots[tempTracker])
         {
-            betAmount = raiseAmount;
+            game.betAmount = raiseAmount;
         }
         else
         {
             std::cout << "Raise is lower, automaticly check" << std::endl;
         }
-        player.plPots[tempTracker] -= betAmount;
-        pot += betAmount;
+        player.plPots[tempTracker] -= game.betAmount;
+        game.pot += game.betAmount;
 
     }
     else if (strCompare(choice, "check"))
     {
         std::cout << "Checked" << std::endl;
-        player.plPots[tempTracker] -= betAmount;
-        pot += betAmount;
+        player.plPots[tempTracker] -= game.betAmount;
+        game.pot += game.betAmount;
     }
     else if (strCompare(choice, "fold"))
     {
         std::cout << "Folded" << std::endl;
-        foldPlayer(player, tempTracker, plCount, originalCount, pot, game, roundEnded);
+        foldPlayer(player, tempTracker, plCount, game);
     }
     else
     {
@@ -499,17 +519,17 @@ void playerMessage(Player& player, size_t& playerTracker, size_t& plCount, size_
 
     do
     {
-        playerTracker++;
-        if (playerTracker > originalCount) {
-            playerTracker = 1; // Wrap back to the first player
+        game.playerTracker++;
+        if (game.playerTracker > game.originalCount) {
+            game.playerTracker = 1; // Wrap back to the first player
         }
-        tempTracker = playerTracker - 1;
+        tempTracker = game.playerTracker - 1;
     } while (!player.activePl[tempTracker]); //Makes sure it does this at least once even without the while
 
     delete[] choice;
 }
 
-void playerWin(Player& player, size_t playerTracker, size_t& pot, bool& game, size_t originalCount, bool& roundEnded)
+void playerWin(Player& player, GameLogic& game)
 {
     //Initialize variables
     size_t comb = 0;
@@ -518,7 +538,7 @@ void playerWin(Player& player, size_t playerTracker, size_t& pot, bool& game, si
     size_t tempSize = PLAYER_CARDS * 2;
 
     //Check for highest scoring hand
-    for (int i = 0; i < originalCount; i++)
+    for (int i = 0; i < game.originalCount; i++)
     {
         if (player.activePl[i])
         {
@@ -532,33 +552,33 @@ void playerWin(Player& player, size_t playerTracker, size_t& pot, bool& game, si
     }
 
     //Display the winner, give him the chips and reset the pot
-    std::cout << "Player" << winner + 1 << " wins " << pot << " chips!!!" << std::endl;
-    player.plPots[winner] += pot;
-    pot = 0;
-    winningMessage(player, game, originalCount, roundEnded);
+    std::cout << "Player" << winner + 1 << " wins " << game.pot << " chips!!!" << std::endl;
+    player.plPots[winner] += game.pot;
+    game.pot = 0;
+    winningMessage(player, game);
 }
 
-void checkWinner(Player& player, size_t& plCount, size_t originalCount, size_t& pot, bool& game, bool& roundEnded)
+void checkWinner(Player& player, size_t& plCount, GameLogic& game)
 {
-    for (int i = 0; i < originalCount; i++)
+    for (int i = 0; i < game.originalCount; i++)
     {
         if (player.activePl[i])
         {
             std::cout << "Player" << i + 1 << " wins as last active player!!" << std::endl;
-            std::cout << pot << " Chips won!!" << std::endl;
-            player.plPots[i] += pot;
+            std::cout << game.pot << " Chips won!!" << std::endl;
+            player.plPots[i] += game.pot;
             break;
         }
     }
-    pot = 0;
-    winningMessage(player, game, originalCount, roundEnded);
+    game.pot = 0;
+    winningMessage(player, game);
     return;
     //roundEnded = true;
 
-    plCount = originalCount;
+    plCount = game.originalCount;
 }
 
-void winningMessage(Player& player, bool& game, size_t originalCount, bool& roundEnded)
+void winningMessage(Player& player, GameLogic& game)
 {
     char* continueGame = new char[ARRAY_SIZE];
     std::cout << "Continiue playin?..." << std::endl;
@@ -566,16 +586,16 @@ void winningMessage(Player& player, bool& game, size_t originalCount, bool& roun
     std::cin.getline(continueGame, ARRAY_SIZE);
     if (strCompare(continueGame, "YES"))
     {
-        game = true;
-        for (size_t i = 0; i < originalCount; i++)
+        game.game = true;
+        for (size_t i = 0; i < game.originalCount; i++)
         {
             player.activePl[i] = true;
         }
     }
     else
     {
-        game = false;
-        roundEnded = false;
+        game.game = false;
+        game.roundEnded = false;
     }
 
     delete[] continueGame;
