@@ -1,5 +1,5 @@
-//If someone other than player one riases then it should loop back to the beggining
 //fix joker for all combos , ace pair/flush/something else if there is any
+//fix ui issue that after a player has folded in a game then the grid thing isnt going to show him
 //make possible for mulitple people to win
 //the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
 //if someone runns out of money then he is booted out of the game
@@ -34,7 +34,9 @@ struct GameLogic
     size_t betAmount;
     bool roundEnded;
     bool stateOfGame;
-
+    size_t currentRaiser;
+    bool raiseOccured;
+    size_t turnsTaken;
 };
 
 //Initiazlize all needed fucntions
@@ -43,6 +45,7 @@ void initDeck(Deck& deck);
 void freeDeck(Deck& deck);
 void initPlayer(Player& player, size_t count);
 void freePlayer(Player& player);
+void resetVariables(GameLogic& game, size_t plCount);
 void consoleMessage1();
 void createDynamicChar(char** a, size_t size);
 void createDynamicBool(bool* a);
@@ -92,14 +95,20 @@ int main()
     while (game.stateOfGame && plCount > 1)
     {
         //Reshuffle the deck and deal new cards if the game continues
-        plCount = game.originalCount; // Reseting to the original amount of players
-        game.stateOfGame = false;
+        resetVariables(game, plCount);
         shuffleCards(deck.cards);
         givePlHands(deck, player, plCount);
         consoleMessage2(player.plPots, plCount);
-        game.playerTracker = 1;
 
-        for (size_t i = 0; i < game.originalCount; i++)
+        /*for (size_t i = 0; i < game.originalCount; i++)
+        {
+            playerMessage(player, game, plCount);
+            if (game.stateOfGame)
+            {
+                break;
+            }
+        }*/
+        while (!game.roundEnded)
         {
             playerMessage(player, game, plCount);
             if (game.stateOfGame)
@@ -131,6 +140,9 @@ void initLogic(GameLogic& game, size_t plCount)
     game.betAmount = 0;
     game.roundEnded = false;
     game.stateOfGame = true;
+    size_t currentRaiser = 0;
+    bool raiseOccured = false;
+    size_t turnsTaken = 0;
 }
 
 void initPlayer(Player& player, size_t count)
@@ -147,6 +159,18 @@ void freePlayer(Player& player)
     freeMemory(player.hands, ARRAY_SIZE);
     delete[] player.plPots;
     delete[] player.activePl;
+}
+
+void resetVariables(GameLogic& game, size_t plCount)
+{
+    plCount = game.originalCount; // Reseting to the original amount of players
+    game.currentRaiser = 0;
+    game.raiseOccured = false;
+    game.stateOfGame = false;
+    game.roundEnded = false;
+    game.turnsTaken = 0;
+    game.playerTracker = 1;
+    game.betAmount = 0;
 }
 
 void initDeck(Deck& deck)
@@ -315,7 +339,17 @@ void foldPlayer(Player& player, size_t& playerIndex, size_t& plCount, GameLogic&
 
     //Reduce the amount of palyers
     plCount--;
-    if (plCount == 1)
+    
+    size_t activePlayerCount = 0;
+    for (size_t i = 0; i < game.originalCount; i++)
+    {
+        if (player.activePl[i])
+        {
+            activePlayerCount++;
+        }
+    }
+
+    if (activePlayerCount == 1)
     {
         checkWinner(player, plCount, game);
     }
@@ -453,6 +487,7 @@ size_t cardCombs(Player& player, size_t playerTracker)
 void playerMessage(Player& player, GameLogic& game, size_t& plCount)
 {
     size_t tempTracker = game.playerTracker - 1;
+    game.turnsTaken++;
 
     //Clears the console
     std::cout << "\x1B[2J\x1B[H";
@@ -482,6 +517,8 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
         if (raiseAmount > game.betAmount && raiseAmount <= player.plPots[tempTracker])
         {
             game.betAmount = raiseAmount;
+            game.raiseOccured = true;
+            game.currentRaiser = tempTracker;
         }
         else
         {
@@ -514,12 +551,30 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
 
     do
     {
+        std::cout << "Advancing turn. Current tracker: " << game.playerTracker << std::endl;
         game.playerTracker++;
-        if (game.playerTracker > game.originalCount) {
+        if (game.playerTracker > game.originalCount)
+        {
             game.playerTracker = 1; // Wrap back to the first player
         }
         tempTracker = game.playerTracker - 1;
-    } while (!player.activePl[tempTracker]); //Makes sure it does this at least once even without the while
+    }
+    while (!player.activePl[tempTracker]); //Makes sure it does this at least once even without the while
+
+    if (game.raiseOccured)
+    {
+        if (game.currentRaiser == tempTracker)
+        {
+            game.roundEnded = true;
+        }
+    }
+    else
+    {
+        if (game.turnsTaken >= game.originalCount)
+        {
+            game.roundEnded = true;
+        }
+    }
 
     delete[] choice;
 }
