@@ -1,8 +1,8 @@
 //If someone other than player one riases then it should loop back to the beggining
 //fix joker for all combos , ace pair/flush/something else if there is any
 //make possible for mulitple people to win
-//da se zapisva v fail
-//ako nqkoi nqma poveche pari da ne moje da igrae poveche
+//the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
+//if someone runns out of money then he is booted out of the game
 #include <iostream>
 
 //Initiazlize all needed constants
@@ -33,7 +33,7 @@ struct GameLogic
     size_t pot;
     size_t betAmount;
     bool roundEnded;
-    bool game;
+    bool stateOfGame;
 
 };
 
@@ -70,15 +70,6 @@ int main()
     //Opening message
     consoleMessage1();
 
-    //Initialize variables
-    /*size_t plCount = playerCount();
-    size_t originalCount = plCount;
-    size_t playerTracker = 1;
-    size_t pot = 0;
-    size_t betAmount = 0;
-    bool roundEnded = false;
-    bool game = true;*/
-
     //Initialize the palyer and the deck
     size_t plCount = playerCount();
     GameLogic game;
@@ -98,11 +89,11 @@ int main()
     giveChips(player, plCount);
 
     //Start the game and continue if required
-    while (game.game && plCount > 1)
+    while (game.stateOfGame && plCount > 1)
     {
         //Reshuffle the deck and deal new cards if the game continues
         plCount = game.originalCount; // Reseting to the original amount of players
-        game.game = false;
+        game.stateOfGame = false;
         shuffleCards(deck.cards);
         givePlHands(deck, player, plCount);
         consoleMessage2(player.plPots, plCount);
@@ -111,8 +102,12 @@ int main()
         for (size_t i = 0; i < game.originalCount; i++)
         {
             playerMessage(player, game, plCount);
+            if (game.stateOfGame)
+            {
+                break;
+            }
         }
-        if (game.game)
+        if (game.stateOfGame)
         {
             continue;
         }
@@ -135,7 +130,7 @@ void initLogic(GameLogic& game, size_t plCount)
     game.pot = 0;
     game.betAmount = 0;
     game.roundEnded = false;
-    game.game = true;
+    game.stateOfGame = true;
 }
 
 void initPlayer(Player& player, size_t count)
@@ -567,15 +562,13 @@ void checkWinner(Player& player, size_t& plCount, GameLogic& game)
             std::cout << "Player" << i + 1 << " wins as last active player!!" << std::endl;
             std::cout << game.pot << " Chips won!!" << std::endl;
             player.plPots[i] += game.pot;
-            break;
+            game.pot = 0;
+            winningMessage(player, game);
+            //if(!game.stateOfGame)
+            plCount = game.originalCount;
+            return;
         }
     }
-    game.pot = 0;
-    winningMessage(player, game);
-    return;
-    //roundEnded = true;
-
-    plCount = game.originalCount;
 }
 
 void winningMessage(Player& player, GameLogic& game)
@@ -583,10 +576,11 @@ void winningMessage(Player& player, GameLogic& game)
     char* continueGame = new char[ARRAY_SIZE];
     std::cout << "Continiue playin?..." << std::endl;
     std::cout << "Type (YES) to continue playing" << std::endl;
-    std::cin.getline(continueGame, ARRAY_SIZE);
+    //std::cin.getline(continueGame, ARRAY_SIZE);
+    std::cin >> continueGame;
     if (strCompare(continueGame, "YES"))
     {
-        game.game = true;
+        game.stateOfGame = true;
         for (size_t i = 0; i < game.originalCount; i++)
         {
             player.activePl[i] = true;
@@ -594,9 +588,7 @@ void winningMessage(Player& player, GameLogic& game)
     }
     else
     {
-        game.game = false;
-        game.roundEnded = false;
+        game.stateOfGame = false;
     }
-
     delete[] continueGame;
 }
