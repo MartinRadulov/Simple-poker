@@ -3,6 +3,7 @@
 //make possible for mulitple people to win
 //the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
 //if someone runns out of money then he is booted out of the game
+//add inital chip to join
 #include <iostream>
 
 //Initiazlize all needed constants
@@ -64,9 +65,11 @@ size_t highestValue(Player& player, size_t playerTracker);
 size_t cardCombs(Player& player, size_t playerTracker);
 //void raiseOccured()
 void playerMessage(Player& player, GameLogic& game, size_t& plCount);
-void playerWin(Player& player, GameLogic& game);
+void playerWin(Player& player, GameLogic& game, size_t& plCount);
 void checkWinner(Player& player, size_t& plCount, GameLogic& game);
-void winningMessage(Player& player, GameLogic& game);
+void winningMessage(Player& player, GameLogic& game, size_t& plCount);
+void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount);
+void consoleMessageEnd();
 
 int main()
 {
@@ -100,14 +103,6 @@ int main()
         givePlHands(deck, player, plCount);
         consoleMessage2(player.plPots, plCount);
 
-        /*for (size_t i = 0; i < game.originalCount; i++)
-        {
-            playerMessage(player, game, plCount);
-            if (game.stateOfGame)
-            {
-                break;
-            }
-        }*/
         while (!game.roundEnded)
         {
             playerMessage(player, game, plCount);
@@ -116,13 +111,18 @@ int main()
                 break;
             }
         }
+        if (game.originalCount = 1)
+        {
+            consoleMessageEnd();
+            playerWin(player, game, plCount);
+            break;
+        }
         if (game.stateOfGame)
         {
             continue;
         }
 
-        playerWin(player, game);
-        //plCount = originalCount; // Reseting to the original amount of players
+        playerWin(player, game, plCount);
     }
 
     //Free memory
@@ -579,7 +579,7 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
     delete[] choice;
 }
 
-void playerWin(Player& player, GameLogic& game)
+void playerWin(Player& player, GameLogic& game, size_t& plCount)
 {
     //Initialize variables
     size_t comb = 0;
@@ -605,7 +605,7 @@ void playerWin(Player& player, GameLogic& game)
     std::cout << "Player" << winner + 1 << " wins " << game.pot << " chips!!!" << std::endl;
     player.plPots[winner] += game.pot;
     game.pot = 0;
-    winningMessage(player, game);
+    winningMessage(player, game, plCount);
 }
 
 void checkWinner(Player& player, size_t& plCount, GameLogic& game)
@@ -618,15 +618,17 @@ void checkWinner(Player& player, size_t& plCount, GameLogic& game)
             std::cout << game.pot << " Chips won!!" << std::endl;
             player.plPots[i] += game.pot;
             game.pot = 0;
-            winningMessage(player, game);
-            //if(!game.stateOfGame)
+            if (game.originalCount != 1)
+            {
+                winningMessage(player, game, plCount);
+            }
             plCount = game.originalCount;
             return;
         }
     }
 }
 
-void winningMessage(Player& player, GameLogic& game)
+void winningMessage(Player& player, GameLogic& game, size_t& plCount)
 {
     char* continueGame = new char[ARRAY_SIZE];
     std::cout << "Continiue playin?..." << std::endl;
@@ -639,6 +641,11 @@ void winningMessage(Player& player, GameLogic& game)
         for (size_t i = 0; i < game.originalCount; i++)
         {
             player.activePl[i] = true;
+            if (player.plPots[i] <= 0)
+            {
+                deletePlayer(player, game, i, plCount);
+                i--;
+            }
         }
     }
     else
@@ -646,4 +653,34 @@ void winningMessage(Player& player, GameLogic& game)
         game.stateOfGame = false;
     }
     delete[] continueGame;
+}
+
+void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount)
+{
+    size_t deleteIndex = 0;
+    game.originalCount--;
+    plCount--;
+    deleteIndex = index;
+    for (int i = deleteIndex; i < game.originalCount; i++)
+    {
+        player.hands[i] = player.hands[i + 1];
+    }
+    delete[] player.hands[game.originalCount];
+    char** newHands = new char* [game.originalCount];
+    for (int i = 0; i < game.originalCount; i++)
+    {
+        newHands[i] = player.hands[i];
+    }
+    delete[] player.hands;
+    player.hands = newHands;
+    if (plCount == 1)
+    {
+        checkWinner(player, plCount, game);
+    }
+}
+
+void consoleMessageEnd()
+{
+    std::cout << "Only one player still has chips" << std::endl;
+    std::cout << "Game ending" << std::endl;
 }
