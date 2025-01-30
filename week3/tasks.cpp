@@ -1,8 +1,7 @@
-//fix joker for all combos , ace pair/flush/something else if there is any
 //fix ui issue that after a player has folded in a game then the grid thing isnt going to show him
 //make possible for mulitple people to win
 //the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
-//if someone runns out of money then he is booted out of the game
+//if someone runns out of money then he is booted out of the game(still need to fix this)
 //add inital chip to join
 #include <iostream>
 
@@ -69,7 +68,9 @@ void playerWin(Player& player, GameLogic& game, size_t& plCount);
 void checkWinner(Player& player, size_t& plCount, GameLogic& game);
 void winningMessage(Player& player, GameLogic& game, size_t& plCount);
 void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount);
-void consoleMessageEnd();
+void consoleMessageEnd(GameLogic& game, Player& player);
+void checkCombo(GameLogic& game, Player& player, size_t& winner);
+size_t biggestNumber(size_t a, size_t b, size_t c);
 
 int main()
 {
@@ -94,6 +95,7 @@ int main()
     givePlHands(deck, player, plCount);
     giveChips(player, plCount);
 
+
     //Start the game and continue if required
     while (game.stateOfGame && plCount > 1)
     {
@@ -111,10 +113,10 @@ int main()
                 break;
             }
         }
-        if (game.originalCount = 1)
+        if (game.originalCount == 1)
         {
-            consoleMessageEnd();
-            playerWin(player, game, plCount);
+            consoleMessageEnd(game, player);
+            //playerWin(player, game, plCount);
             break;
         }
         if (game.stateOfGame)
@@ -396,9 +398,10 @@ size_t highestValue(Player& player, size_t playerTracker)
     size_t tempMax = 0, tempSize = PLAYER_CARDS * 2;
     for (int i = 0; i < tempSize; i += 2)
     {
-        if (player.hands[playerTracker][i] > tempMax)
+        size_t cardValue = giveValue(player.hands, i, playerTracker);
+        if (cardValue > tempMax)
         {
-            tempMax = giveValue(player.hands, i, playerTracker);
+            tempMax = cardValue;
         }
     }
     return tempMax;
@@ -406,15 +409,21 @@ size_t highestValue(Player& player, size_t playerTracker)
 
 size_t cardCombs(Player& player, size_t playerTracker)
 {
+    std::cout << "player" << std::endl;
     size_t combAmount = 0;
+    size_t flushAmount = 0;
     size_t suitAmount = 0;
     size_t tempSize = PLAYER_CARDS * 2;
     size_t rankCounter = 1;
     size_t suitCounter = 0;
     size_t aceCounter = 0;
     size_t sevenCounter = 0;
+    size_t flushCounter = 1;
+    size_t jokerFlush = 0;
     bool joker = false;
     size_t highCard = highestValue(player, playerTracker);
+    std::cout << "The high card is" << highCard << std::endl;
+    size_t lastCard = giveValue(player.hands, 4, playerTracker);
 
     //Search for the joker
     for (int rank = 0, suit = 1; rank < tempSize; rank += 2, suit += 2)
@@ -423,22 +432,12 @@ size_t cardCombs(Player& player, size_t playerTracker)
         {
             joker = true;
             rankCounter++; //Only two cards would be needed now for the three of a kind
-            sevenCounter++;
+            aceCounter++;
+            //sevenCounter++;
             combAmount += 11; //Gives +11 to every combination
+            jokerFlush++;
+            std::cout << "There is a joker" << std::endl;
         }
-    }
-
-    //Go thru the hand to look for combinations
-    for (int rank = 0, suit = 1; suit <= PLAYER_CARDS; rank += 2, suit += 2) //Only one loop is required
-    {
-        //Counter goes up by 1 if there are mathing ranks
-        if (player.hands[playerTracker][rank] == player.hands[playerTracker][rank + 2]) //checks the next rank
-        {
-            rankCounter++;
-            combAmount = giveValue(player.hands, rank, playerTracker) * rankCounter;
-        }
-
-        //Check for 7 or Ace because they can also have a pair
         if (player.hands[playerTracker][rank] == '7')
         {
             sevenCounter++;
@@ -447,23 +446,49 @@ size_t cardCombs(Player& player, size_t playerTracker)
         {
             aceCounter++;
         }
+    }
+
+    //Go thru the hand to look for Three of a kind
+    for (int rank = 0, suit = 1; suit <= PLAYER_CARDS; rank += 2, suit += 2) //Only one loop is required
+    {
+        //Counter goes up by 1 if there are mathing ranks
+        if (player.hands[playerTracker][rank] == player.hands[playerTracker][rank + 2]) //checks the next rank
+        {
+            rankCounter++;
+            if (rankCounter == 3)
+            {
+                combAmount = giveValue(player.hands, rank, playerTracker) * rankCounter;
+                std::cout << "three" << std::endl << combAmount << std::endl;
+            }
+        }
 
         //If there are three sevens immidietly return 34
         if (sevenCounter == 3)
         {
             return THREE_SEVENS;
         }
+    }
 
-        //If there is a three of kind then return the combAmount
-        if (rankCounter == 3)
+    //Check for flush
+    for (int suitFirst = 0; suitFirst < PLAYER_CARDS; suitFirst++)
+    {
+        for (int suitNext = suitFirst + 1; suitNext < PLAYER_CARDS; suitNext++)
         {
-            return combAmount;
-        }
-
-        //Checks for matching suit
-        if (player.hands[playerTracker][suit] == player.hands[playerTracker][suit + 2])
-        {
-            combAmount += giveValue(player.hands, rank, playerTracker);
+            size_t rank1 = suitFirst * 2;
+            size_t rank2 = suitNext * 2;
+            if (player.hands[playerTracker][rank1 + 1] == player.hands[playerTracker][rank2 + 1])
+            {
+                flushCounter++;
+                if (flushCounter == 2 || (flushCounter + jokerFlush) == 2)
+                {
+                    flushAmount = giveValue(player.hands, rank1, playerTracker) + giveValue(player.hands, rank2, playerTracker);
+                }
+                else if (flushCounter == 3 || (flushCounter + jokerFlush) == 3)
+                {
+                    flushAmount += lastCard;
+                }
+                std::cout << "flush?" << std::endl << flushAmount << std::endl;
+            }
         }
     }
 
@@ -477,11 +502,12 @@ size_t cardCombs(Player& player, size_t playerTracker)
     {
         combAmount = SEVEN_PAIR;
     }
-    if (combAmount > highCard)
+    /*if (combAmount > highCard)
     {
         return combAmount;
     }
-    return highCard;
+    return highCard;*/
+    return biggestNumber(flushAmount, combAmount, highCard);
 }
 
 void playerMessage(Player& player, GameLogic& game, size_t& plCount)
@@ -528,7 +554,7 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
         game.pot += game.betAmount;
 
     }
-    else if (strCompare(choice, "check"))
+    else if (strCompare(choice, "check") && game.betAmount <= player.plPots[tempTracker])
     {
         std::cout << "Checked" << std::endl;
         player.plPots[tempTracker] -= game.betAmount;
@@ -582,24 +608,8 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
 void playerWin(Player& player, GameLogic& game, size_t& plCount)
 {
     //Initialize variables
-    size_t comb = 0;
     size_t winner = 0;
-    size_t maxComb = 0;
-    size_t tempSize = PLAYER_CARDS * 2;
-
-    //Check for highest scoring hand
-    for (int i = 0; i < game.originalCount; i++)
-    {
-        if (player.activePl[i])
-        {
-            size_t curretnComb = cardCombs(player, i);
-            if (curretnComb > maxComb)
-            {
-                maxComb = curretnComb;
-                winner = i;
-            }
-        }
-    }
+    checkCombo(game, player, winner);
 
     //Display the winner, give him the chips and reset the pot
     std::cout << "Player" << winner + 1 << " wins " << game.pot << " chips!!!" << std::endl;
@@ -643,8 +653,10 @@ void winningMessage(Player& player, GameLogic& game, size_t& plCount)
             player.activePl[i] = true;
             if (player.plPots[i] <= 0)
             {
+                std::cout << game.originalCount;
                 deletePlayer(player, game, i, plCount);
                 i--;
+                std::cout << game.originalCount;
             }
         }
     }
@@ -679,8 +691,53 @@ void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount
     }
 }
 
-void consoleMessageEnd()
+void consoleMessageEnd(GameLogic& game, Player& player)
 {
+
+    //Initialize variables
+    size_t winner = 0;
+    checkCombo(game, player, winner);
+
+    //Display the winner, give him the chips and reset the pot
+    std::cout << "Player" << winner + 1 << " wins the whole game!!" << std::endl;
     std::cout << "Only one player still has chips" << std::endl;
     std::cout << "Game ending" << std::endl;
+}
+
+void checkCombo(GameLogic& game, Player& player, size_t& winner)
+{
+    //Initialize variables
+    size_t comb = 0;
+    size_t maxComb = 0;
+    size_t tempSize = PLAYER_CARDS * 2;
+
+    //Check for highest scoring hand
+    for (int i = 0; i < game.originalCount; i++)
+    {
+        if (player.activePl[i])
+        {
+            size_t currentComb = cardCombs(player, i);
+            std::cout << currentComb<< std::endl;
+            if (currentComb > maxComb)
+            {
+                maxComb = currentComb;
+                winner = i;
+            }
+        }
+    }
+}
+
+size_t biggestNumber(size_t a, size_t b, size_t c)
+{
+    size_t tempMax = 0;
+    //const int tempSize = 3;
+    size_t arr[3] = { a, b, c };
+    for (int i = 0; i < 3; i++)
+    {
+        if (arr[i] > tempMax)
+        {
+            tempMax = arr[i];
+        }
+    }
+    return tempMax;
 }
