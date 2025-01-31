@@ -74,6 +74,7 @@ void consoleMessageEnd(GameLogic& game, Player& player, size_t& winner);
 void checkCombo(GameLogic& game, Player& player, size_t& winner);
 size_t biggestNumber(size_t a, size_t b, size_t c);
 void tieRound(GameLogic& game, Player& player, size_t& plCount);
+void reduceBlind(Player& player, GameLogic& game);
 
 int main()
 {
@@ -102,12 +103,6 @@ int main()
     //Start the game and continue if required
     while (game.stateOfGame && plCount > 1)
     {
-        ////Reshuffle the deck and deal new cards if the game continues
-        //resetVariables(game, plCount);
-        //shuffleCards(deck.cards);
-        //givePlHands(deck, player, plCount);
-        //consoleMessage2(player.plPots, plCount);
-
         if (game.tieActive)
         {
             //shuffleCards(deck.cards);
@@ -115,8 +110,8 @@ int main()
             tieRound(game, player, plCount);
         }
 
-
         //Reshuffle the deck and deal new cards if the game continues
+        reduceBlind(player, game);
         resetVariables(game, plCount);
         shuffleCards(deck.cards);
         givePlHands(deck, player, plCount);
@@ -549,7 +544,7 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
         size_t raiseAmount = 0;
         std::cout << "Raise to:" << std::endl;
         std::cin >> raiseAmount;
-        if (raiseAmount > game.betAmount && raiseAmount <= player.plPots[tempTracker])
+        if (raiseAmount > game.betAmount && raiseAmount <= player.plPots[tempTracker] && raiseAmount > 10)
         {
             game.betAmount = raiseAmount;
             game.raiseOccured = true;
@@ -806,4 +801,12 @@ void tieRound(GameLogic& game, Player& player, size_t& plCount)
         j++;
     }
     game.tieActive = false;
+}
+
+void reduceBlind(Player& player, GameLogic& game)
+{
+    for (int i = 0; i < game.originalCount; i++)
+    {
+        player.plPots[i] -= CHIP_VALUE;
+    }
 }
