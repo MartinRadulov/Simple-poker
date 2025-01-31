@@ -1,9 +1,8 @@
-//make possible for mulitple people to win
 //the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
-//add inital chip to join
 //add comments
 //fix raise check fold
 #include <iostream>
+#include <fstream>
 
 //Initiazlize all needed constants
 const size_t CARD_AMOUNT = 32, NUMBER_SUITS = 4, ROW_SIZE = 2, ARRAY_SIZE = 128;
@@ -64,7 +63,6 @@ void consoleMessage2(int* plPots, size_t plCount);
 size_t giveValue(char** a, size_t cardIndex, size_t playerTracker);
 size_t highestValue(Player& player, size_t playerTracker);
 size_t cardCombs(Player& player, size_t playerTracker);
-//void raiseOccured()
 void playerMessage(Player& player, GameLogic& game, size_t& plCount);
 void playerWin(Player& player, GameLogic& game, size_t& plCount);
 void checkWinner(Player& player, size_t& plCount, GameLogic& game);
@@ -75,6 +73,9 @@ void checkCombo(GameLogic& game, Player& player, size_t& winner);
 size_t biggestNumber(size_t a, size_t b, size_t c);
 void tieRound(GameLogic& game, Player& player, size_t& plCount);
 void reduceBlind(Player& player, GameLogic& game);
+void saveFile(GameLogic& game, Player& player, size_t plCount);
+void loadFile(GameLogic& game, Player& player, size_t plCount);
+size_t lowestPot(Player& player, size_t plCount);
 
 int main()
 {
@@ -98,6 +99,8 @@ int main()
     //Give cards and chips to players
     givePlHands(deck, player, plCount);
     giveChips(player, plCount);
+    //saveFile(game, player);
+    loadFile(game, player, plCount);
 
 
     //Start the game and continue if required
@@ -113,6 +116,7 @@ int main()
         //Reshuffle the deck and deal new cards if the game continues
         reduceBlind(player, game);
         resetVariables(game, plCount);
+        plCount = game.originalCount;
         shuffleCards(deck.cards);
         givePlHands(deck, player, plCount);
         consoleMessage2(player.plPots, plCount);
@@ -131,6 +135,7 @@ int main()
         }
 
         playerWin(player, game, plCount);
+        saveFile(game, player, plCount);
     }
 
     //Free memory
@@ -173,7 +178,7 @@ void freePlayer(Player& player)
 
 void resetVariables(GameLogic& game, size_t plCount)
 {
-    plCount = game.originalCount; // Reseting to the original amount of players
+    //plCount = game.originalCount; // Reseting to the original amount of players
     game.currentRaiser = 0;
     game.raiseOccured = false;
     game.stateOfGame = false;
@@ -207,6 +212,7 @@ void consoleMessage1()
     std::cout << "------------------------" << std::endl;
     std::cout << "How many players are going to play?" << std::endl;
     std::cout << "Enter player amount:" << std::endl;
+    std::cout << "(Will be overwriten if you load save)" << std::endl;
 }
 
 void createDynamicChar(char** a, size_t size)
@@ -544,9 +550,9 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
         size_t raiseAmount = 0;
         std::cout << "Raise to:" << std::endl;
         std::cin >> raiseAmount;
-        if (raiseAmount > game.betAmount && raiseAmount <= player.plPots[tempTracker] && raiseAmount > 10)
+        if (raiseAmount > game.betAmount && raiseAmount <= lowestPot(player, plCount) && raiseAmount > 1)
         {
-            game.betAmount = raiseAmount;
+            game.betAmount = raiseAmount * 10;
             game.raiseOccured = true;
             game.currentRaiser = tempTracker;
         }
@@ -554,7 +560,7 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
         {
             std::cout << "Raise is lower, automaticly check" << std::endl;
         }
-        player.plPots[tempTracker] -= game.betAmount;
+        player.plPots[tempTracker] -= game.betAmount * 10;
         game.pot += game.betAmount;
 
     }
@@ -562,7 +568,7 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
     {
         std::cout << "Checked" << std::endl;
         player.plPots[tempTracker] -= game.betAmount;
-        game.pot += game.betAmount;
+        game.pot += game.betAmount * 10;
     }
     else if (strCompare(choice, "fold"))
     {
@@ -571,7 +577,8 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
     }
     else
     {
-        std::cout << "Invalid input" << std::endl << "Skipping turn" << std::endl;
+        std::cout << "Invalid input" << std::endl << "Folding" << std::endl;
+        foldPlayer(player, tempTracker, plCount, game);
     }
 
     //Wait for input before going to the next screen
@@ -616,12 +623,10 @@ void playerWin(Player& player, GameLogic& game, size_t& plCount)
     checkCombo(game, player, winner);
     if (game.tieActive)
     {
-        std::cout << "TIEEEEE" << std::endl;
         game.stateOfGame = true;
         return;
     }
     player.plPots[winner] += game.pot;
-    game.pot = 0;
     for (int i = game.originalCount - 1; i >= 0; i--)
     {
         if (player.plPots[i] <= 0 && player.activePl[i])
@@ -638,6 +643,7 @@ void playerWin(Player& player, GameLogic& game, size_t& plCount)
         std::cout << "Player" << winner + 1 << " wins " << game.pot << " chips!!!" << std::endl;
         winningMessage(player, game, plCount);
     }
+    game.pot = 0;
 }
 
 void checkWinner(Player& player, size_t& plCount, GameLogic& game)
@@ -779,10 +785,15 @@ void tieRound(GameLogic& game, Player& player, size_t& plCount)
             std::cout <<"Player" << i + 1 <<  " join the tie?..." << std::endl;
             std::cout << "Type (YES) to join" << std::endl;
             std::cin >> joinGame;
-            if (strCompare(joinGame, "YES"))
+            if (strCompare(joinGame, "YES") && player.plPots[i] > game.pot / 2)
             {
                 player.activePl[i] = true;
                 player.plPots[i] -= game.pot / 2;
+            }
+            else if(strCompare(joinGame, "YES") && player.plPots[i] == 0)
+            {
+                player.activePl[i] = true;
+                player.plPots[i] = 50;
             }
             delete[] joinGame;
         }
@@ -809,4 +820,77 @@ void reduceBlind(Player& player, GameLogic& game)
     {
         player.plPots[i] -= CHIP_VALUE;
     }
+}
+
+void saveFile(GameLogic& game, Player& player, size_t plCount)
+{
+    std::ofstream saveFile("Save.txt");
+
+    if (saveFile)
+    {
+        saveFile << game.originalCount;
+        saveFile << std::endl;
+        saveFile << plCount;
+        saveFile << std::endl;
+        for (int i = 0; i < game.originalCount; i++)
+        {
+            saveFile << player.plPots[i] << " ";
+        }
+        saveFile << std::endl;
+        saveFile.close();
+    }
+    else
+    {
+        std::cerr << "Failed to open file" << std::endl;
+    }
+}
+
+void loadFile(GameLogic& game, Player& player, size_t plCount)
+{
+    std::cout << "Do you want to continue from save?" << std::endl;
+    std::cout << "(New game will start if save doesn't exist)" << std::endl;
+    char* loadGame = new char[ARRAY_SIZE];
+    std::cout << "Type (YES) to load" << std::endl;
+    std::cin >> loadGame;
+    if (strCompare(loadGame, "YES"))
+    {
+        std::ifstream saveFile("Save.txt");
+
+        if (saveFile)
+        {
+            saveFile >> game.originalCount;
+            saveFile >> plCount;
+            for (int i = 0; i < game.originalCount; i++)
+            {
+                saveFile >> player.plPots[i];
+            }
+            saveFile.close();
+            std::cout << "Loading file..." << std::endl;
+        }
+        else
+        {
+            //std::cerr << "Failed to open file" << std::endl;
+            std::cout << "New game starting..." << std::endl;
+            giveChips(player, plCount);
+        }
+    }
+    else
+    {
+        std::cout << "New game starting..." << std::endl;
+        giveChips(player, plCount);
+    }
+    delete[] loadGame;
+}
+
+size_t lowestPot(Player& player, size_t plCount)
+{
+    size_t tempMin = 1e10;
+    for (int i = 0; i < plCount; i++)
+    {
+        if (player.plPots[i] < tempMin)
+        {
+            tempMin = player.plPots[i];
+        }
+    }
+    return tempMin;
 }
