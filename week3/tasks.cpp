@@ -3,7 +3,6 @@
 //add inital chip to join
 //add comments
 //fix raise check fold
-//small fix for the tie
 #include <iostream>
 
 //Initiazlize all needed constants
@@ -734,11 +733,23 @@ void checkCombo(GameLogic& game, Player& player, size_t& winner)
                 game.maxCombo = currentComb;
                 winner = i;
             }
-            else if (currentComb == game.maxCombo)
+        }
+    }
+    size_t tempCount = 0;
+    for (int i = 0; i < game.originalCount; i++)
+    {
+        if (player.activePl[i])  // Only check active players
+        {
+            size_t currentComb = cardCombs(player, i);
+            if (currentComb == game.maxCombo)
             {
-                game.tieActive = true;
+                tempCount++;
             }
         }
+    }
+    if (tempCount > 1)
+    {
+        game.tieActive = true;
     }
 }
 
