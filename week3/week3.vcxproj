@@ -128,7 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="tasks.cpp" />
+    <ClCompile Include="SImplePoker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include=".gitignore.txt" />
