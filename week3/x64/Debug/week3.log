@@ -1,11 +1,11 @@
 ﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(531,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (week3.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   tasks.cpp
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(290,20): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(543,43): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(550,43): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(603,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(605,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(631,37): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(654,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(679,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(309,20): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(562,43): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(569,43): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(628,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(630,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(656,37): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(700,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\sussus amogus\source\repos\week3\week3\tasks.cpp(778,46): warning C4267: '-=': conversion from 'size_t' to 'int', possible loss of data
   week3.vcxproj -> C:\Users\sussus amogus\source\repos\week3\x64\Debug\Simple poker.exe

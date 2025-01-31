@@ -2,6 +2,8 @@
 //the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
 //add inital chip to join
 //add comments
+//fix raise check fold
+//small fix for the tie
 #include <iostream>
 
 //Initiazlize all needed constants
@@ -36,6 +38,8 @@ struct GameLogic
     size_t currentRaiser;
     bool raiseOccured;
     size_t turnsTaken;
+    bool tieActive;
+    size_t maxCombo;
 };
 
 //Initiazlize all needed fucntions
@@ -70,6 +74,7 @@ void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount
 void consoleMessageEnd(GameLogic& game, Player& player, size_t& winner);
 void checkCombo(GameLogic& game, Player& player, size_t& winner);
 size_t biggestNumber(size_t a, size_t b, size_t c);
+void tieRound(GameLogic& game, Player& player, size_t& plCount);
 
 int main()
 {
@@ -98,12 +103,26 @@ int main()
     //Start the game and continue if required
     while (game.stateOfGame && plCount > 1)
     {
+        ////Reshuffle the deck and deal new cards if the game continues
+        //resetVariables(game, plCount);
+        //shuffleCards(deck.cards);
+        //givePlHands(deck, player, plCount);
+        //consoleMessage2(player.plPots, plCount);
+
+        if (game.tieActive)
+        {
+            //shuffleCards(deck.cards);
+            //givePlHands(deck, player, plCount);
+            tieRound(game, player, plCount);
+        }
+
+
         //Reshuffle the deck and deal new cards if the game continues
         resetVariables(game, plCount);
         shuffleCards(deck.cards);
         givePlHands(deck, player, plCount);
         consoleMessage2(player.plPots, plCount);
-
+        game.maxCombo = 0;
         while (!game.roundEnded)
         {
             playerMessage(player, game, plCount);
@@ -138,6 +157,8 @@ void initLogic(GameLogic& game, size_t plCount)
     size_t currentRaiser = 0;
     bool raiseOccured = false;
     size_t turnsTaken = 0;
+    game.tieActive = false;
+    //game.maxCombo = 0;
 }
 
 void initPlayer(Player& player, size_t count)
@@ -599,11 +620,17 @@ void playerWin(Player& player, GameLogic& game, size_t& plCount)
 {
     size_t winner = 0;
     checkCombo(game, player, winner);
+    if (game.tieActive)
+    {
+        std::cout << "TIEEEEE" << std::endl;
+        game.stateOfGame = true;
+        return;
+    }
     player.plPots[winner] += game.pot;
     game.pot = 0;
     for (int i = game.originalCount - 1; i >= 0; i--)
     {
-        if (player.plPots[i] <= 0)
+        if (player.plPots[i] <= 0 && player.activePl[i])
         {
             deletePlayer(player, game, i, plCount);
         }
@@ -642,15 +669,13 @@ void checkWinner(Player& player, size_t& plCount, GameLogic& game)
 void winningMessage(Player& player, GameLogic& game, size_t& plCount)
 {
     char* continueGame = new char[ARRAY_SIZE];
-    //char continueGame[ARRAY_SIZE];
     std::cout << "Continiue playin?..." << std::endl;
     std::cout << "Type (YES) to continue playing" << std::endl;
-    //std::cin.getline(continueGame, ARRAY_SIZE);
     std::cin >> continueGame;
     if (strCompare(continueGame, "YES"))
     {
         game.stateOfGame = true;
-        for (int i = game.originalCount - 1; i >= 0; i--)
+        for (int i = 0; i < game.originalCount; i++)
         {
             if (player.plPots[i] > 0)
             {
@@ -667,12 +692,10 @@ void winningMessage(Player& player, GameLogic& game, size_t& plCount)
 
 void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount)
 {
-
     if (game.originalCount == 0 || index >= game.originalCount)
     {
         return;
     }
-
     game.originalCount--;
     plCount--;
     for (int i = index; i < game.originalCount; i++)
@@ -701,19 +724,19 @@ void consoleMessageEnd(GameLogic& game, Player& player, size_t& winner)
 
 void checkCombo(GameLogic& game, Player& player, size_t& winner)
 {
-    //Initialize variables
-    size_t comb = 0;
-    size_t maxComb = 0;
-
     for (int i = 0; i < game.originalCount; i++)
     {
         if (player.activePl[i])  // Only check active players
         {
             size_t currentComb = cardCombs(player, i);
-            if (currentComb > maxComb)
+            if (currentComb > game.maxCombo)
             {
-                maxComb = currentComb;
+                game.maxCombo = currentComb;
                 winner = i;
+            }
+            else if (currentComb == game.maxCombo)
+            {
+                game.tieActive = true;
             }
         }
     }
@@ -732,4 +755,44 @@ size_t biggestNumber(size_t a, size_t b, size_t c)
         }
     }
     return tempMax;
+}
+
+void tieRound(GameLogic& game, Player& player, size_t& plCount)
+{
+    std::cout << "There is a tie" << std::endl << "Type YES to join" << std::endl;
+    for (int i = 0; i < plCount; i++)
+    {
+        player.activePl[i] = false;
+        if (cardCombs(player, i) == game.maxCombo)
+        {
+            player.activePl[i] = true;
+        }
+        else
+        {
+            char* joinGame = new char[ARRAY_SIZE];
+            std::cout <<"Player" << i + 1 <<  " join the tie?..." << std::endl;
+            std::cout << "Type (YES) to join" << std::endl;
+            std::cin >> joinGame;
+            if (strCompare(joinGame, "YES"))
+            {
+                player.activePl[i] = true;
+                player.plPots[i] -= game.pot / 2;
+            }
+            delete[] joinGame;
+        }
+    }
+    int j = 0;
+    while (!game.roundEnded && j < plCount)
+    {
+        if (player.activePl[j])
+        {
+            playerMessage(player, game, plCount);
+            if (game.stateOfGame)
+            {
+                break;
+            }
+        }
+        j++;
+    }
+    game.tieActive = false;
 }
