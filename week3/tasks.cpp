@@ -1,8 +1,7 @@
-//fix ui issue that after a player has folded in a game then the grid thing isnt going to show him
 //make possible for mulitple people to win
 //the game progres should be kept in a file and after the begging of the game it asks you if you want to continue from your save
-//if someone runns out of money then he is booted out of the game(still need to fix this)
 //add inital chip to join
+//add comments
 #include <iostream>
 
 //Initiazlize all needed constants
@@ -68,7 +67,7 @@ void playerWin(Player& player, GameLogic& game, size_t& plCount);
 void checkWinner(Player& player, size_t& plCount, GameLogic& game);
 void winningMessage(Player& player, GameLogic& game, size_t& plCount);
 void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount);
-void consoleMessageEnd(GameLogic& game, Player& player);
+void consoleMessageEnd(GameLogic& game, Player& player, size_t& winner);
 void checkCombo(GameLogic& game, Player& player, size_t& winner);
 size_t biggestNumber(size_t a, size_t b, size_t c);
 
@@ -112,12 +111,6 @@ int main()
             {
                 break;
             }
-        }
-        if (game.originalCount == 1)
-        {
-            consoleMessageEnd(game, player);
-            //playerWin(player, game, plCount);
-            break;
         }
         if (game.stateOfGame)
         {
@@ -422,7 +415,6 @@ size_t cardCombs(Player& player, size_t playerTracker)
     size_t jokerFlush = 0;
     bool joker = false;
     size_t highCard = highestValue(player, playerTracker);
-    std::cout << "The high card is" << highCard << std::endl;
     size_t lastCard = giveValue(player.hands, 4, playerTracker);
 
     //Search for the joker
@@ -436,7 +428,6 @@ size_t cardCombs(Player& player, size_t playerTracker)
             //sevenCounter++;
             combAmount += 11; //Gives +11 to every combination
             jokerFlush++;
-            std::cout << "There is a joker" << std::endl;
         }
         if (player.hands[playerTracker][rank] == '7')
         {
@@ -458,7 +449,6 @@ size_t cardCombs(Player& player, size_t playerTracker)
             if (rankCounter == 3)
             {
                 combAmount = giveValue(player.hands, rank, playerTracker) * rankCounter;
-                std::cout << "three" << std::endl << combAmount << std::endl;
             }
         }
 
@@ -487,7 +477,6 @@ size_t cardCombs(Player& player, size_t playerTracker)
                 {
                     flushAmount += lastCard;
                 }
-                std::cout << "flush?" << std::endl << flushAmount << std::endl;
             }
         }
     }
@@ -587,6 +576,7 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
     }
     while (!player.activePl[tempTracker]); //Makes sure it does this at least once even without the while
 
+
     if (game.raiseOccured)
     {
         if (game.currentRaiser == tempTracker)
@@ -607,15 +597,26 @@ void playerMessage(Player& player, GameLogic& game, size_t& plCount)
 
 void playerWin(Player& player, GameLogic& game, size_t& plCount)
 {
-    //Initialize variables
     size_t winner = 0;
     checkCombo(game, player, winner);
-
-    //Display the winner, give him the chips and reset the pot
-    std::cout << "Player" << winner + 1 << " wins " << game.pot << " chips!!!" << std::endl;
     player.plPots[winner] += game.pot;
     game.pot = 0;
-    winningMessage(player, game, plCount);
+    for (int i = game.originalCount - 1; i >= 0; i--)
+    {
+        if (player.plPots[i] <= 0)
+        {
+            deletePlayer(player, game, i, plCount);
+        }
+    }
+    if (game.originalCount == 1)
+    {
+        consoleMessageEnd(game, player, winner);
+    }
+    else
+    {
+        std::cout << "Player" << winner + 1 << " wins " << game.pot << " chips!!!" << std::endl;
+        winningMessage(player, game, plCount);
+    }
 }
 
 void checkWinner(Player& player, size_t& plCount, GameLogic& game)
@@ -641,6 +642,7 @@ void checkWinner(Player& player, size_t& plCount, GameLogic& game)
 void winningMessage(Player& player, GameLogic& game, size_t& plCount)
 {
     char* continueGame = new char[ARRAY_SIZE];
+    //char continueGame[ARRAY_SIZE];
     std::cout << "Continiue playin?..." << std::endl;
     std::cout << "Type (YES) to continue playing" << std::endl;
     //std::cin.getline(continueGame, ARRAY_SIZE);
@@ -648,15 +650,11 @@ void winningMessage(Player& player, GameLogic& game, size_t& plCount)
     if (strCompare(continueGame, "YES"))
     {
         game.stateOfGame = true;
-        for (size_t i = 0; i < game.originalCount; i++)
+        for (int i = game.originalCount - 1; i >= 0; i--)
         {
-            player.activePl[i] = true;
-            if (player.plPots[i] <= 0)
+            if (player.plPots[i] > 0)
             {
-                std::cout << game.originalCount;
-                deletePlayer(player, game, i, plCount);
-                i--;
-                std::cout << game.originalCount;
+                player.activePl[i] = true;
             }
         }
     }
@@ -669,35 +667,32 @@ void winningMessage(Player& player, GameLogic& game, size_t& plCount)
 
 void deletePlayer(Player& player, GameLogic& game, size_t index, size_t& plCount)
 {
-    size_t deleteIndex = 0;
+
+    if (game.originalCount == 0 || index >= game.originalCount)
+    {
+        return;
+    }
+
     game.originalCount--;
     plCount--;
-    deleteIndex = index;
-    for (int i = deleteIndex; i < game.originalCount; i++)
+    for (int i = index; i < game.originalCount; i++)
     {
         player.hands[i] = player.hands[i + 1];
+        player.activePl[i] = player.activePl[i + 1];
+        player.plPots[i] = player.plPots[i + 1];
     }
-    delete[] player.hands[game.originalCount];
-    char** newHands = new char* [game.originalCount];
-    for (int i = 0; i < game.originalCount; i++)
-    {
-        newHands[i] = player.hands[i];
-    }
-    delete[] player.hands;
-    player.hands = newHands;
+    player.hands[game.originalCount] = nullptr;
+
     if (plCount == 1)
     {
-        checkWinner(player, plCount, game);
+        //consoleMessageEnd(game, player);
+        game.stateOfGame = false;
+        return;
     }
 }
 
-void consoleMessageEnd(GameLogic& game, Player& player)
+void consoleMessageEnd(GameLogic& game, Player& player, size_t& winner)
 {
-
-    //Initialize variables
-    size_t winner = 0;
-    checkCombo(game, player, winner);
-
     //Display the winner, give him the chips and reset the pot
     std::cout << "Player" << winner + 1 << " wins the whole game!!" << std::endl;
     std::cout << "Only one player still has chips" << std::endl;
@@ -709,15 +704,12 @@ void checkCombo(GameLogic& game, Player& player, size_t& winner)
     //Initialize variables
     size_t comb = 0;
     size_t maxComb = 0;
-    size_t tempSize = PLAYER_CARDS * 2;
 
-    //Check for highest scoring hand
     for (int i = 0; i < game.originalCount; i++)
     {
-        if (player.activePl[i])
+        if (player.activePl[i])  // Only check active players
         {
             size_t currentComb = cardCombs(player, i);
-            std::cout << currentComb<< std::endl;
             if (currentComb > maxComb)
             {
                 maxComb = currentComb;
